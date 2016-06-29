@@ -1,9 +1,23 @@
+# coding=utf-8
+import matplotlib.pyplot as plt
 import scipy.io
 import pandas as pd
+from scipy.optimize import curve_fit
 import numpy as np
+import os
 
 
 def mat_to_df(path):
+    """[summary]
+
+    [description - This function converts a matlab .mat saved file to a .csv file.]
+
+    Arguments:
+      path {[type]} -- [description]
+
+    Returns:
+      [type] -- [description]
+    """
 
     mat = scipy.io.loadmat(path,
                            matlab_compatible=True,
@@ -14,9 +28,14 @@ def mat_to_df(path):
     return df
 
 
-p_source = mat_to_df("golden_files/P_ritter.mat").T
+# default source files
+SOURCE_PATH_MAT = os.path.join('golden', 'P_ritter.mat')
 
-all_mean_data = mat_to_df("golden_files/data_all_mean.mat")
+# default data
+DATA_PATH_MAT = os.path.join('golden', 'data_all_mean.mat')
+
+# Chem elimination data (ng/glip)
+CHEM_ELIMINATION_DATA = os.path.join('mikes_et_al_2012.csv')
 
 N_MALES_ = 100
 N_FEMALES_ = 100
@@ -29,11 +48,58 @@ AGE_MOM_IN_YEARS_ = 25
 AGE_GROUPINGS_ = range(15, 45, 5)  # start, stop, step
 PEAK_DOSING_INTENSITY_ = 80  # [ng/kg/d]
 N_OPTIMIZATION_RUNS_ = 1
+REF_FEMALE_BODY_WEIGHT_KG_ = 69
 
+
+"""[summary]
+# TODO(Create function to sum up exposure from food)
+As is, it's not clear how the exposure is calculated from data
+D = C*IR*AF*EF*CF/BW
+D = Exposure dose
+C = contaminant concentration (mg/kg)
+IR = intake rate of contaminated medium (mg/d)
+AF = bioavailability factor (assume 1)
+EF = exposure factor (assume 1)
+CF = conversion factor (10e-6 kg/mg)
+BW = body weight (kg)
+
+-- EF = (F*ED)/AT, where F = frequency of exposure (d/year)
+                  ED = exposure duration (years)
+                  AT = averaging time = (ED*365d/yeaer)
+Ref: https://www.atsdr.cdc.gov/hac/phamanual/appg.html
+
+[description]
+"""
+
+"""[summary]
+
+
+[description]
+"""
+
+# import the biomonitoring data.
+biomonitoring_data = pd.read_csv('mikes_et_al_2012.csv')
+biomonitoring_data_conjoiners = list(biomonitoring_data)
+print biomonitoring_data_conjoiners
+
+for conjoiner in biomonitoring_data_conjoiners:
+    x = biomonitoring_data[conjoiner]
+    # print x
+
+
+def expon_fit_function(x, a, b, c):
+    return a * np.exp(-b * x) + c
+
+x = np.linspace(0, 3, 50)
+y = np.exp(x)
+a, b = curve_fit(expon_fit_function, x, y, p0=(1, 1e-6, 1))
+print a, b
+plt.plot(x, y)
+plt.show()
 # congener organization
 # start year, peak year
 # end year is parameterized as a functinon of # of people
-# TODO(eli) Tenzing has a time array as well, remove
+# TODO (Tenzing has a time array as well, remove)
 _CONGENER_START_PEAK_AGE_GROUP = {
     'bHCH': [1921, 1977, 7],
     'DDE': [1921, 1974, 9],
@@ -50,20 +116,17 @@ _CONGENER_START_PEAK_AGE_GROUP = {
     'PCB180': [1921, 1977, 6]}
 
 _CONGENERS_TO_EVALUATE = ['PCB180', 'bHCH', 'DDE', 'DDT']
+_FITTING_APPROACH = ['intake', 'intake_k_elim', 'original', 't_elim']
 
 
-def congener_start_peak_lookup(row):
+def congener_SPA_lookup(row):
     """Find valence.
     notes: match ENM and return valence
     :param row:
     :return: corresponding electrolyte valence
     """
-    return _CONGENER_START_AND_PEAK.get(row.congener_start_peak_lookup, [0, 0])
-
-
-def congener_age_group_lookup(row):
-    return _CONGENER_AGE_GROUP_DEFINITION.get(
-        row.congener_age_group_lookup, [0, 0, 0])
+    return _CONGENER_START_PEAK_AGE_GROUP.get(row.congener_SPA_lookup,
+                                              [0, 0])
 
 
 def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
@@ -77,6 +140,9 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
          absorbption_factor=ABSORP_FACTOR_,
          congener_start_peak_age_group=_CONGENER_START_PEAK_AGE_GROUP,
          congeners_to_evaluate=_CONGENERS_TO_EVALUATE):
+
+    p_source = mat_to_df(SOURCE_PATH_MAT).T
+    all_mean_data = mat_to_df(DATA_PATH_MAT).to_csv('test.csv')
 
     # age iteration parameters
     # Time variables (single-value parameters --> input_single matrix)
@@ -105,8 +171,7 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                                       num=age_max_in_years * years_to_months,
                                       endpoint=True)
 
-    # TODO(eli) peak dosing intensity on/off? set function?
-    # TODO(eli) ensure 80 is ng/kg/d
+    # TODO(peak dosing intensity on/off? set function?)
     peak_dosing_intensity = 80 * absorbption_factor / 1000 * month_to_days
 
     congener_start_peak_age_group_df = pd.DataFrame(
@@ -118,6 +183,11 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             for item in ss_val:
                 congener_start_peak_age_group_df[str(item)] = item
 
-    print congener_start_peak_age_group_df
+    # print congener_start_peak_age_group_df
+    # print age_m
+
+    # set the kinetics for females that give birth
+    # for female in
+
 
 main()
