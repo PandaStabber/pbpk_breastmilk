@@ -21,6 +21,7 @@ clc; clear; close all; format long; format compact; tic
     load data_all_mean.mat
     emp_year_all = 1994:2009;    
    
+   
 %% change variables accordingly
     fabs    = 0.9; % [-], absorption factor, generic value
     I_peak  = 80*fabs/1000*D; % ng/kg/d --> ng/g/month
@@ -49,6 +50,7 @@ clc; clear; close all; format long; format compact; tic
     t_lac   = 6;                % [months] 6 months exclusively --> generic value
     bm_flip = 0.0034 * log(age_ym(1:t_lac)) + 0.0414; % Verner (2013), EHP
     bm_m(1:t_lac)           = (-0.0024 .* age_ym(1,1:t_lac) + 0.0063) .* Mbw(1,1:t_lac)*24*D; 
+%     disp(bm_m)
     % bm_m(2:t_lac)         = 0; 
     klac_in(1:t_lac,1)      = bm_m.*bm_flip./Mlip(1,1:t_lac); 
     klac_out = zeros(1,age_max_m); 
@@ -287,8 +289,8 @@ clc; clear; close all; format long; format compact; tic
 %
 % % graphs_CSD
 % graphs_CSTD
- graphs_intake
- graphs_CSD_congener
+%  graphs_intake
+%  graphs_CSD_congener
 
 % graphs_LD
 
