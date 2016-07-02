@@ -3,22 +3,13 @@ import matplotlib.pyplot as plt
 import scipy.io
 import pandas as pd
 from scipy.optimize import curve_fit
+from scipy import polyval, stats
 import numpy as np
 import os
+import matplotlib.cm as cm
 
 
 def mat_to_df(path):
-    """[summary]
-
-    [description - This function converts a matlab .mat saved file to a .csv file.]
-
-    Arguments:
-      path {[type]} -- [description]
-
-    Returns:
-      [type] -- [description]
-    """
-
     mat = scipy.io.loadmat(path,
                            matlab_compatible=True,
                            variable_names=None)
@@ -35,7 +26,9 @@ SOURCE_PATH_MAT = os.path.join('golden', 'P_ritter.mat')
 DATA_PATH_MAT = os.path.join('golden', 'data_all_mean.mat')
 
 # Chem elimination data (ng/glip)
-CHEM_ELIMINATION_DATA = os.path.join('mikes_et_al_2012.csv')
+# organized: time, conjoiner1, conjoiner2 (ng/kgbw/d), ...
+BIOMONITORING_DATA_ELIMINATION = os.path.join('mikes_et_al_2012.csv')
+BIOMONITORING_DATA_ELIMINATION_UNITS = ['ng/kg_bw/d', 'years']
 
 N_MALES_ = 100
 N_FEMALES_ = 100
@@ -49,87 +42,27 @@ AGE_GROUPINGS_ = range(15, 45, 5)  # start, stop, step
 PEAK_DOSING_INTENSITY_ = 80  # [ng/kg/d]
 N_OPTIMIZATION_RUNS_ = 1
 REF_FEMALE_BODY_WEIGHT_KG_ = 69
+KINETICS_ORDER_ = 1
 
 
-"""[summary]
-# TODO(Create function to sum up exposure from food)
-As is, it's not clear how the exposure is calculated from data
-D = C*IR*AF*EF*CF/BW
-D = Exposure dose
-C = contaminant concentration (mg/kg)
-IR = intake rate of contaminated medium (mg/d)
-AF = bioavailability factor (assume 1)
-EF = exposure factor (assume 1)
-CF = conversion factor (10e-6 kg/mg)
-BW = body weight (kg)
+_CONGENER_START_PEAK_AGE_GROUP = os.path.join('cogener_start_peak_age_group.csv')
 
--- EF = (F*ED)/AT, where F = frequency of exposure (d/year)
-                  ED = exposure duration (years)
-                  AT = averaging time = (ED*365d/yeaer)
-Ref: https://www.atsdr.cdc.gov/hac/phamanual/appg.html
-
-[description]
-"""
-
-"""[summary]
-
-
-[description]
-"""
-
-# import the biomonitoring data.
-biomonitoring_data = pd.read_csv('mikes_et_al_2012.csv')
-biomonitoring_data_conjoiners = list(biomonitoring_data)
-print biomonitoring_data_conjoiners
-
-for conjoiner in biomonitoring_data_conjoiners:
-    x = biomonitoring_data[conjoiner]
-    # print x
-
-
-def expon_fit_function(x, a, b, c):
-    return a * np.exp(-b * x) + c
-
-x = np.linspace(0, 3, 50)
-y = np.exp(x)
-a, b = curve_fit(expon_fit_function, x, y, p0=(1, 1e-6, 1))
-print a, b
-plt.plot(x, y)
-plt.show()
-# congener organization
-# start year, peak year
-# end year is parameterized as a functinon of # of people
-# TODO (Tenzing has a time array as well, remove)
-_CONGENER_START_PEAK_AGE_GROUP = {
-    'bHCH': [1921, 1977, 7],
-    'DDE': [1921, 1974, 9],
-    'DDT': [1921, 1977, 10],
-    'gHCH': [1921, 1977, 7],
-    'HCB': [1921, 1977, 7],
-    'PCB28': [1921, 1975, 7],
-    'PCB52': [1921, 1977, 7],
-    'PCB101': [1921, 1977, 7],
-    'PCB118': [1921, 1977, 7],
-    'PCB138': [1921, 1977, 7],
-    'PCB153': [1921, 1977, 7],
-    'PCB170': [1921, 1977, 7],
-    'PCB180': [1921, 1977, 6]}
-
-_CONGENERS_TO_EVALUATE = ['PCB180', 'bHCH', 'DDE', 'DDT']
+_CONGENERS_TO_EVALUATE = ['hcb', 'ppddt', 'ppdde', 'betahch', 'gammahch', 'pcb138']
 _FITTING_APPROACH = ['intake', 'intake_k_elim', 'original', 't_elim']
 
 
 def congener_SPA_lookup(row):
-    """Find valence.
-    notes: match ENM and return valence
-    :param row:
-    :return: corresponding electrolyte valence
-    """
     return _CONGENER_START_PEAK_AGE_GROUP.get(row.congener_SPA_lookup,
                                               [0, 0])
 
 
 def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
+         biomonitoring_data=BIOMONITORING_DATA_ELIMINATION,
+         biomonitoring_data_elimination_units=BIOMONITORING_DATA_ELIMINATION_UNITS,
+         congener_start_peak_age_group=_CONGENER_START_PEAK_AGE_GROUP,
+         congeners_to_evaluate=_CONGENERS_TO_EVALUATE,  # list
+         kinetics_order=KINETICS_ORDER_,
+         plot_kinetics=False,
          n_male=N_MALES_,
          n_female=N_FEMALES_,
          study_start_year=STUDY_START_YEAR_,
@@ -137,9 +70,75 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
          t_lact=T_LACT_,
          age_max_in_years=AGE_MAX_IN_YEARS_,
          age_mom_in_years=AGE_MOM_IN_YEARS_,
-         absorbption_factor=ABSORP_FACTOR_,
-         congener_start_peak_age_group=_CONGENER_START_PEAK_AGE_GROUP,
-         congeners_to_evaluate=_CONGENERS_TO_EVALUATE):
+         absorbption_factor=ABSORP_FACTOR_):
+
+    # kinetics - import biomonitoring data if needed
+    # TODO(build in argparse here for csv extension)
+    # kinetics_from_biomonitoring_data = pd.DataFrame()
+    kinetics_from_biomonitoring_data = []
+    if biomonitoring_data:
+        biomonitoring_data = pd.read_csv(biomonitoring_data)
+        biomonitoring_data_time = biomonitoring_data.ix[:, 0]
+        congeners_to_evaluate = congeners_to_evaluate
+        biomonitoring_data_congoners = list(biomonitoring_data[-1:])
+        eval_bio_diff = list(
+            set(congeners_to_evaluate) -
+            set(biomonitoring_data_congoners))
+        if not eval_bio_diff:
+            print "All chemicals with biomonitoring data will be evaluated"
+        else:
+            print "biomonitoring data available, but not evaluating chemicals: ", eval_bio_diff
+
+        colors = cm.rainbow(np.linspace(0, 1, len(congeners_to_evaluate)))
+        for congener, c in zip(congeners_to_evaluate, colors):
+            if kinetics_order == 1:
+                x = np.array(biomonitoring_data_time)
+                y = np.log10(np.array(biomonitoring_data[congener]))
+                (slope, intercept, r_value, p_value, std_err) = stats.linregress(x, y)
+                # TODO(output the kinetic rates and fit values to a table)
+                # print(congener, " has a 1st order kinetic elimination estimate of ",
+                #       slope, str('per ' + BIOMONITORING_DATA_ELIMINATION_UNITS[1]))
+                # print(congener, " has an r^2 fit value of ", r_value**2)
+
+                y_regression_line = polyval([slope, intercept], x)
+                kinetics_from_biomonitoring_data.append(slope)
+                if plot_kinetics:
+
+                    plt.plot(x, 10**y, color=c,
+                             marker='o', linestyle='', label=str(
+                                 'biomonitoring data; ' + congener))
+                    plt.plot(x, 10**y_regression_line,
+                             color=c, marker='', linestyle='-')
+
+            elif kinetics_order == 2:
+                x = np.log10(np.array(biomonitoring_data_time))
+                y = np.log10(np.array(biomonitoring_data[congener]))
+                (slope, intercept, r_value, p_value, std_err) = stats.linregress(x, y)
+                # TODO(output the kinetic rates and fit values to a table)
+                # print(congener, " has a 1st order kinetic elimination estimate of ",
+                #       slope, str('per ' + BIOMONITORING_DATA_ELIMINATION_UNITS[1]))
+                # print(congener, " has an r^2 fit value of ", r_value**2)
+
+                y_regression_line = polyval([slope, intercept], x)
+                kinetics_from_biomonitoring_data.append(slope)
+                if plot_kinetics:
+
+                    plt.plot(10**x, 10**y, color=c,
+                             marker='o', linestyle='', label=str(
+                                 'biomonitoring data; ' + congener))
+                    plt.plot(10**x, 10**y_regression_line,
+                             color=c, marker='', linestyle='-')
+
+        print kinetics_from_biomonitoring_data
+        if plot_kinetics:
+            plt.show()
+
+    # assigning chemical specific parameters
+    # import start peak age group data
+    congener_start_peak_age_group_df = pd.read_csv(congener_start_peak_age_group)
+    print congener_start_peak_age_group_df
+    congener_start_peak_age_group_df = congener_start_peak_age_group_df[
+        congener_start_peak_age_group_df.cogener in congeners_to_evaluate]
 
     p_source = mat_to_df(SOURCE_PATH_MAT).T
     all_mean_data = mat_to_df(DATA_PATH_MAT).to_csv('test.csv')
@@ -174,16 +173,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     # TODO(peak dosing intensity on/off? set function?)
     peak_dosing_intensity = 80 * absorbption_factor / 1000 * month_to_days
 
-    congener_start_peak_age_group_df = pd.DataFrame(
-        congeners_to_evaluate, columns=['congener_name'])
-
-    for congeners in congener_start_peak_age_group:
-        if congeners in congeners_to_evaluate:
-            ss_val = congener_start_peak_age_group.get(congeners)
-            for item in ss_val:
-                congener_start_peak_age_group_df[str(item)] = item
-
-    # print congener_start_peak_age_group_df
     # print age_m
 
     # set the kinetics for females that give birth
@@ -191,3 +180,40 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
 
 main()
+
+
+"""[summary]
+# TODO(Create function to sum up exposure from food)
+As is, it's not clear how the exposure is calculated from data
+D = C*IR*AF*EF*CF/BW
+D = Exposure dose
+C = contaminant concentration (mg/kg)
+IR = intake rate of contaminated medium (mg/d)
+AF = bioavailability factor (assume 1)
+EF = exposure factor (assume 1)
+CF = conversion factor (10e-6 kg/mg)
+BW = body weight (kg)
+
+-- EF = (F*ED)/AT, where F = frequency of exposure (d/year)
+                  ED = exposure duration (years)
+                  AT = averaging time = (ED*365d/yeaer)
+Ref: https://www.atsdr.cdc.gov/hac/phamanual/appg.html
+
+[description]
+"""
+
+"""[summary]
+    for congener in congeners_to_evaluate:
+        ss_val = congener_start_peak_age_group.get(congener)
+        print ss_val
+
+    for congeners in congener_start_peak_age_group:
+        if congeners in congeners_to_evaluate:
+            ss_val = congener_start_peak_age_group.get(congeners)
+            print ss_val
+            for item in ss_val:
+                congener_start_peak_age_group_df[str(item)] = item
+
+    print congener_start_peak_age_group_df
+[description]
+"""
