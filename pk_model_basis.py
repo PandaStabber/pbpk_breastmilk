@@ -171,9 +171,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     # [years] age in years with interval of 1 year
     age_in_years_array = range(1, age_max_in_years)  # start, stop, step=1
 
-    # [months] age in weeks with interval of 1 month
-    age_m = range(1, max_age_in_months)  # start, stop, step=1
-
     # [years] age in years with interval of 1 month
     age_years_in_months = np.linspace(start=1.0 / 12,
                                       stop=age_max_in_years,

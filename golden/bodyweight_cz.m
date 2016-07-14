@@ -14,10 +14,13 @@ Mlip = Mbw.*flip;             % [glip]
 
 kgrowth = zeros(1,age_max_m); % rate constant of growth, [1/month]
 kgrowth(1,1) = (Mlip(1,1)-Mlip_ini)/Mlip(1,1);
+
 for a = 2:age_max_m
     kgrowth (1,a) = (Mlip(1,a)-Mlip(1,a-1))/Mlip(1,a); % [1/month] 
+	
 end
-
+disp(kgrowth)
+disp('kgrowth')
 Mbw_av  = 69; % [kg]
 
 
