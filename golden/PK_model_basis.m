@@ -291,10 +291,10 @@ clc; clear; close all; format long; format compact; tic
 %
 % % graphs_CSD
 % graphs_CSTD
-%  graphs_intake
-%  graphs_CSD_congener
+ graphs_intake
+ graphs_CSD_congener
 
-% graphs_LD
+graphs_LD
 
 
 % profile viewer
