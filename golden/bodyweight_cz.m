@@ -19,8 +19,8 @@ for a = 2:age_max_m
     kgrowth (1,a) = (Mlip(1,a)-Mlip(1,a-1))/Mlip(1,a); % [1/month] 
 	
 end
-disp(kgrowth)
-disp('kgrowth')
+
+
 Mbw_av  = 69; % [kg]
 
 

@@ -17,7 +17,7 @@ if strcmp(chooseOpt,'intake')
     kdec_down    = log(2)/Th_dec_down;      % [1/yr]
     % known intake
     int_data      = xlsread('CSTD_input_data.xlsx', 'Mikes et al 2012', 'B25:C35'); % 
-    disp(int_data)
+
     int_emp_year  = int_data(:,1); 
     int_emp       = int_data(:,2)*1000;  % ug/kg/d --> ng/kg/d
     int_emp       = int_emp/1000*D;      % ng/kg/d --> ng/g/months

@@ -49,7 +49,6 @@ clc; clear; close all; format long; format compact; tic
 % breastfeeding 
     t_lac   = 6;                % [months] 6 months exclusively --> generic value
     bm_flip = 0.0034 * log(age_ym(1:t_lac)) + 0.0414; % Verner (2013), EHP
-    disp(bm_flip)
     disp('bm_flip')
     bm_m(1:t_lac)           = (-0.0024 .* age_ym(1,1:t_lac) + 0.0063) .* Mbw(1,1:t_lac)*24*D; 
 %     disp(bm_m)
@@ -289,12 +288,12 @@ clc; clear; close all; format long; format compact; tic
 %% plots
 
 %
-% % graphs_CSD
+% graphs_CSD
 % graphs_CSTD
  graphs_intake
  graphs_CSD_congener
 
-graphs_LD
+% graphs_LD
 
 
 % profile viewer

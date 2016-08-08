@@ -10,6 +10,7 @@ function [Iref] = ref_intake(Ipeak, M, Y_begin, Y_peak, year, kdec_up, kdec_down
 Iref = zeros(1, length(year));      % [ng/g/month] adult refernce intake for all year
 Iref(1,1:(Y_peak-Y_begin)*M)        = Ipeak.*exp(kdec_up.*(year(1:(Y_peak-Y_begin)*M)-Y_peak));                 
 Iref(1,(1+(Y_peak-Y_begin)*M):end)  = Ipeak.*exp(-kdec_down.*(year((Y_peak-Y_begin)*M+1:length(year))-Y_peak)); 
+
  
 % Iref = ones(1,length(year)) * 5;   % [ng/gbw/month] adult refernce intake for all year
 %                                               % constant Iref as test/comparison  
