@@ -44,9 +44,12 @@ LIPID_FRACTION_PATH_MAT = os.path.join('golden', 'flip_cz.mat')
 BODYWEIGHT_AND_LIPID_FRACTION_ = os.path.join(
     'monthly_bodyweight_and_lipid_fraction.csv')
 BIOMONITORING_DATA_ELIMINATION_ = os.path.join('mikes_et_al_2012.csv')
-BIOMONITORING_DATA_ELIMINATION_UNITS = ['ng/kg_bw/d', 'years']  # just to keep track
-_CONGENER_START_PEAK_AGE_GROUP = os.path.join('cogener_start_peak_age_group.csv')
-_CONGENERS_TO_EVALUATE = ['hcb', 'ppddt', 'ppdde', 'betahch', 'gammahch', 'pcb138']
+BIOMONITORING_DATA_ELIMINATION_UNITS = [
+    'ng/kg_bw/d', 'years']  # just to keep track
+_CONGENER_START_PEAK_AGE_GROUP = os.path.join(
+    'cogener_start_peak_age_group.csv')
+_CONGENERS_TO_EVALUATE = ['hcb', 'ppddt',
+                          'ppdde', 'betahch', 'gammahch', 'pcb138']
 
 _CONGENERS_HALFLIFE_DICT = {'hcb': [10, np.log(2) / 5, np.log(2) / 5],
                             'ppddt': [5, np.log(2) / 5, np.log(2) / 5]}
@@ -106,7 +109,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
          bodyweight_and_lipid_fraction=BODYWEIGHT_AND_LIPID_FRACTION_,
          timesteps_per_month=TIMESTEPS_PER_MONTH):
 
-
     # TODO(build in argparse here for csv extension)
 
     kinetics_from_biomonitoring_data = []
@@ -140,7 +142,7 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                 if plot_kinetics:
                     plt.plot(x, np.exp(y), color=c,
                              marker='o', linestyle='', label=str(
-                            'biomonitoring data; ' + congener))
+                        'biomonitoring data; ' + congener))
                     plt.plot(x, np.exp(y_regression_line),
                              color=c, marker='', linestyle='-')
 
@@ -156,7 +158,7 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                 if plot_kinetics:
                     plt.plot(np.exp(x), np.exp(y), color=c,
                              marker='o', linestyle='', label=str(
-                            'biomonitoring data; ' + congener))
+                        'biomonitoring data; ' + congener))
                     plt.plot(np.exp(x), np.exp(yy_regression_line),
                              color=c, marker='', linestyle='-')
 
@@ -175,7 +177,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         return mass_lipids
 
     if bodyweight_and_lipid_fraction:
-        def mass_spline(study_start_year, study_end_year):
+
+        def mass_spline(study_start_year, study_end_year, bodyweight_and_lipid_fraction):
             bodyweight_and_lipid_fraction = pd.read_csv(
                 bodyweight_and_lipid_fraction)
             bodyweight_and_lipid_fraction[
@@ -193,7 +196,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             spl_int_bw_lip_mass_deriv = spl_int_bw_lip_mass.derivative()
 
             # interpolate in between spline points based on timestamp
-            timesteps = timesteps_per_month * len(bodyweight_and_lipid_fraction)
+            timesteps = timesteps_per_month * \
+                len(bodyweight_and_lipid_fraction)
             timesteps_array = np.linspace(1, len(y_bm), timesteps)
             interpolated_bw_lip_mass = spl_int_bw_lip_mass(timesteps_array)
             delta_bw_lip_mass = shift(interpolated_bw_lip_mass, 1, cval=np.NaN)
@@ -201,14 +205,17 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             # replace the first value (which was shifted).
             # calculate the first delta mass then calculate the kinetics
             delta_bw_lip_mass[0] = bodyweight_and_lipid_fraction['mass_lipids_kg'][
-                                       0] - average_birth_bodyweight_kg_ * average_birth_lipid_fraction_
+                0] - average_birth_bodyweight_kg_ * average_birth_lipid_fraction_
 
-            interpolated_bw_lip_mass_deriv = spl_int_bw_lip_mass_deriv(timesteps_array)
+            interpolated_bw_lip_mass_deriv = spl_int_bw_lip_mass_deriv(
+                timesteps_array)
 
             growth_kinetics_df = pd.DataFrame()
             growth_kinetics_df['mass_lip_kg'] = interpolated_bw_lip_mass
-            growth_kinetics_df['growth_kinetics_dKg/dt'] = interpolated_bw_lip_mass_deriv
+            growth_kinetics_df[
+                'growth_kinetics_dKg/dt'] = interpolated_bw_lip_mass_deriv
 
+            return spl_int_bw_lip_mass_deriv
             # TODO(include function to print bodyweight and derivative (kinetics))
             # plt.plot(timesteps_array, interpolated_bw_lip_mass, 'b')
             # plt.plot(timesteps_array, interpolated_bw_lip_mass_deriv, 'r')
@@ -219,6 +226,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             in the first column and the 'lipid_fraction'
             in the second column''').replace(
             '/t', '')
+    spl_int_bw_lip_mass_deriv = mass_spline(study_start_year, study_end_year,
+                                            bodyweight_and_lipid_fraction)
 
     # [years] age in years with interval of 1 month
     age_years_in_months = np.linspace(start=1.0 / 12,
@@ -230,7 +239,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     lact_kinetics['age_index_months'] = lact_kinetics['age_index_years'] * 12
 
     def set_peak_intesity_distribution(peak_intensity, peak_year, year_begin, year_end, delta_t):
-        # todo(remove peak_year,year_begin,year_end, and replace it with default names in function)
+        # todo(remove peak_year,year_begin,year_end, and replace it with
+        # default names in function)
         """
         In this function, we create a callable function from the peak intensity distribution.
         The intensity distribution function is assumed to be symmetric around the peak year.
@@ -245,13 +255,14 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         # set the upswing and downswing times as a function of the given years.
 
         if (peak_year - year_begin) * 2 < (year_end - year_begin):
-            print ("unclipped symmetric intensity distribution")
+            print("unclipped symmetric intensity distribution")
             total_time_years = (year_end - year_begin)
             total_time_months = total_time_years * 12
             num_steps = total_time_months / delta_t
 
             # set total step space for simulation
-            x_up_down = linspace(start=0, stop=total_time_months, num=num_steps)
+            x_up_down = linspace(
+                start=0, stop=total_time_months, num=num_steps)
 
             upswing_time_years = peak_year - year_begin
             upswing_time_months = upswing_time_years * 12
@@ -260,18 +271,23 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
             downswing_steps = upswing_steps  # if symmetric
 
-            # linearize the known datapoints and then create exponential function:
+            # linearize the known datapoints and then create exponential
+            # function:
             x_up = np.array([0, upswing_time_months])
             y_up = np.log([1, peak_intensity])
-            (slope_up, intercept_up, r_value, p_value, std_err) = stats.linregress(x_up, y_up)
+            (slope_up, intercept_up, r_value, p_value,
+             std_err) = stats.linregress(x_up, y_up)
 
-            # interpolate using the provided slope and intercept to create the regression line
+            # interpolate using the provided slope and intercept to create the
+            # regression line
             x_up_interp = linspace(0, upswing_time_months, upswing_steps)
             y_reg_line_up = polyval([slope_up, intercept_up], x_up_interp)
-            upswing_reg_lin = np.exp(y_reg_line_up)  # take the exp of the reg line to return it to an exp fit
+            # take the exp of the reg line to return it to an exp fit
+            upswing_reg_lin = np.exp(y_reg_line_up)
 
             # downswing side of symmetric intensity distribution
-            x_down = linspace(upswing_time_months, upswing_time_months * 2, downswing_steps)
+            x_down = linspace(upswing_time_months,
+                              upswing_time_months * 2, downswing_steps)
             y_down = upswing_reg_lin[::-1]  # reversed array
 
             # the remaining intensity is set to zero
@@ -287,9 +303,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
             return peak_intensity_spline
 
-
         else:
-            print ("clipped symettric intensity distribution")
+            print("clipped symettric intensity distribution")
             # todo(add symettric intensity distribution when clipped)
 
     # todo(sort out why for values oscillate above and below 6)
@@ -297,7 +312,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     intake_curve_track_mother = []
     intake_curve_track_child = []
 
-    (upswing_callable_intake) = set_peak_intesity_distribution(80, 1977, 1921, 2100, delta_t)
+    (upswing_callable_intake) = set_peak_intesity_distribution(
+        80, 1977, 1921, 2100, delta_t)
 
     def generation_mass_balance(y, congener, generations, simulation_start, simulation_end):
 
@@ -318,14 +334,16 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
         # create simulation timestamps for important events
         # when people are born and when they die.
-        start_array_dydt = []  # this defines the start array dydt numbering system.
+        # this defines the start array dydt numbering system.
+        start_array_dydt = []
         array_mothers_age_in_each_gen = []
         array_mothers_death_in_each_gen = []
         ode_birth_lactation_death_limits = []
 
         # for i in range(0,generations+1):
         start_array_dydt = linspace(0, 4 * (generations - 1), generations)
-        array_mothers_age_in_each_gen = linspace(0, age_mom_in_years * (generations), generations + 1)
+        array_mothers_age_in_each_gen = linspace(
+            0, age_mom_in_years * (generations), generations + 1)
         array_children_birth_time_in_each_gen = linspace(age_mom_in_years, age_mom_in_years * (generations + 1),
                                                          generations + 1)
         array_mothers_death_in_each_gen = linspace(age_max_in_years,
@@ -344,15 +362,17 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             start_array_dydt_gen = np.array(start_array_dydt_gen)
 
         odes_per_gen = range(0, num_odes_in_gen)
-        dydt_matrix = np.zeros(shape=(len(odes_per_gen), generations), dtype=object)
+        dydt_matrix = np.zeros(
+            shape=(len(odes_per_gen), generations), dtype=object)
 
-        order_array_counter = np.array(range(0, generations * len(odes_per_gen)))
-        iteration_matrix = order_array_counter.reshape((len(odes_per_gen), generations), order='F')
+        order_array_counter = np.array(
+            range(0, generations * len(odes_per_gen)))
+        iteration_matrix = order_array_counter.reshape(
+            (len(odes_per_gen), generations), order='F')
 
         #
         # print iteration_matrix
         # print 'generations', range(0, generations)
-
 
         # def mother_timeline(t, counter):
         #
@@ -371,9 +391,12 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                 k_elimination = 1e-3
                 k_lactation = 1e-4
                 ode_numbers = start_array_dydt_gen[:, generation]
-                current_gen_birth_time = array_mothers_age_in_each_gen[generation]
-                next_gen_birth_time = array_children_birth_time_in_each_gen[generation]
-                current_gen_death_time = array_mothers_death_in_each_gen[generation]
+                current_gen_birth_time = array_mothers_age_in_each_gen[
+                    generation]
+                next_gen_birth_time = array_children_birth_time_in_each_gen[
+                    generation]
+                current_gen_death_time = array_mothers_death_in_each_gen[
+                    generation]
 
                 # print 'generation:', generation, 'counter:',counter
                 if generation == 0:
@@ -381,10 +404,13 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                         # print next_gen_birth_time
                         print spl_int_bw_lip_mass_deriv(t)
                         dydt_matrix[0][counter] = spl_int_bw_lip_mass_deriv(t)
-                        dydt_matrix[1][counter] = - k_elimination * y[0] - k_lactation * y[0]
-                        dydt_matrix[2][counter] = k_lactation * y[0] - k_elimination * y[2]
+                        dydt_matrix[1][counter] = - \
+                            k_elimination * y[0] - k_lactation * y[0]
+                        dydt_matrix[2][counter] = k_lactation * \
+                            y[0] - k_elimination * y[2]
                         dydt_matrix[3][counter] = next_gen_birth_time
-                        # next_gen_birth_time#spl_int_bw_lip_mass_deriv(t - next_gen_birth_time)
+                        # next_gen_birth_time#spl_int_bw_lip_mass_deriv(t -
+                        # next_gen_birth_time)
 
                 elif generation > 0:
                     counter = counter + 1
@@ -394,7 +420,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                         iteration_matrix[1][counter] - 1] - k_lactation * y[iteration_matrix[1][counter] - 1]
                     dydt_matrix[2][counter] = intake + k_lactation * y[
                         iteration_matrix[2][counter] - 2] - k_elimination * y[iteration_matrix[2][counter]]
-                    dydt_matrix[3][counter] = next_gen_birth_time  # iteration_matrix[3][counter]
+                    # iteration_matrix[3][counter]
+                    dydt_matrix[3][counter] = next_gen_birth_time
 
             dydt = np.ravel(dydt_matrix, order='F')
 
@@ -403,7 +430,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
         t = np.zeros((np.int(num_steps), 1))
         # use ``vode`` with "backward differentiation formula" or 'bdf'
-
 
         r = integrate.ode(body_mass).set_integrator('vode', order=5, nsteps=num_steps, max_step=delta_t, min_step=0,
                                                     method='bdf')
@@ -447,7 +473,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
             mcc_2[k] = r.y[10]
             mc_2[k] = r.y[11]
 
-            # todo(create these automatically based on the number of generations)
+            # todo(create these automatically based on the number of
+            # generations)
 
             k += 1
 
@@ -526,7 +553,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
     # plt.show()
     # plt.close('all')
-
 
     # plt.plot(intake_curve_track_child)
     # plt.show()
