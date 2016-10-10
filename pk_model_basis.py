@@ -46,7 +46,7 @@ _CONGENERS_HALFLIFE_DICT = {'hcb': [10, np.log(2) / 5, np.log(2) / 5],
 
 _cte = list(_CONGENERS_HALFLIFE_DICT.keys())
 
-TIMESTEPS_PER_MONTH = 1
+TIMESTEPS_PER_MONTH = 10
 N_MALES_ = 100
 N_FEMALES_ = 100
 POP_START_YEAR_ = 1921
@@ -86,10 +86,10 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
          bw_frac_lip=BODYWEIGHT_AND_LIPID_FRACTION_,
          timesteps_per_month=TIMESTEPS_PER_MONTH):
 
-    # set the timeline and step parameters for the study for the study
+
     t_start = study_start_year
     t_final = study_end_year
-    delta_t = 1.  # / timesteps_per_month
+    delta_t = 1  # / timesteps_per_month (e.g., 1 = 1./1. timesteps per month)
     num_steps = np.floor((t_final - t_start) / delta_t) + 1
 
     if bm_data:
@@ -104,18 +104,18 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
     if bw_frac_lip:
         def mass_spline(study_start_year,
-                        study_end_year, 
+                        study_end_year,
                         bw_frac_lip,
-                        t_step, 
-                        body_w_ave, 
+                        t_step,
+                        body_w_ave,
                         average_birth_lipid_fraction_):
-
             bw_frac_lip = pd.read_csv(bw_frac_lip)
             bw_frac_lip['mass_lipids_kg'] = bw_frac_lip.apply(cal_m_lip, 1)
 
             # step 1: paramterize growth with spline interpretation
             y_bm = np.array(bw_frac_lip['mass_lipids_kg'])
-            x_bm = np.linspace(study_start_year, study_end_year, len(y_bm))
+
+            x_bm = np.linspace(study_start_year, study_end_year, num=len(y_bm))
             spl_bw = interpolate.InterpolatedUnivariateSpline(
                 x_bm, y_bm)
 
@@ -132,22 +132,22 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                                              average_birth_lipid_fraction_)
 
     # TODO(Automate entry of peak year and peak max)
-    intakeCall = intake_int_dist(80, 1977, t_start, t_final, delta_t)
+    intakeCall = intake_int_dist(80, 1977, t_start, t_final+average_lact_time_months_, delta_t)
 
-    def generation_mass_balance(y, 
-                                congener, 
-                                gens, 
-                                simulation_start, 
-                                simulation_end, 
-                                delta_t, 
-                                intakeCall, 
-                                bw_spl_der, 
-                                prg_intrvl, 
-                                lifespan, 
+    def generation_mass_balance(y,
+                                congener,
+                                gens,
+                                simulation_start,
+                                simulation_end,
+                                delta_t,
+                                intakeCall,
+                                bw_spl_der,
+                                prg_intrvl,
+                                lifespan,
                                 num_steps):
 
         # dynamically set the number of odes as a function of gens
-        n = len(y) * gens  
+        n = len(y) * gens
         num_odes_in_gen = 4
         n = num_odes_in_gen * gens
         dydt = np.zeros((n, 1))  # initialize dydt array
@@ -166,10 +166,10 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         ode_birth_lactation_death_limits = []
 
         start_array_dydt = linspace(0, 4 * (gens - 1), gens)
-        print start_array_dydt
+        # print start_array_dydt
 
         # age that a mother gives birth in each gen
-        aig_mother = linspace(0, 
+        aig_mother = linspace(0,
                               prg_intrvl * (gens),
                               gens + 1)
 
@@ -187,88 +187,94 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         print "aigd_mother", aigd_mother
 
         """
-        Ok. I've figuad out what to do. I need to make a loop that iteratively 
+        Note1: Ok. I've figured out what to do. I need to make a loop that iteratively
         offsets the start of each new generations mass. Effectively, this means 
         making a new mass spline for each generation that is 0 until the next 
         generation is born. To be honest, I'm not sure how to do that. Perhaps, 
         I can initialize a matrix with each row as each generations subsequent spline. 
-        Then I make a loop where 0s are added to the front and back of each spline.  
+        Then I make a loop where 0s are added to the front and back of each spline.
+
+        Note2: I've figured out Note1. However, this creates time-scale problems in the plot.
+        As such, the plots will need to be removed from their original timescales and re-plotted.
         """
+
         for gen in range(0, gens + 1):
+            intakeCall = intake_int_dist(80, 1977, t_start, t_final+ aig_mother[gen], delta_t)
+            print intakeCall(1)
+            (spl_bw_deriv_child, spl_bw_child) = mass_spline(study_start_year + aig_mother[gen],
+                                                             study_end_year + aig_mother[gen],
+                                                             bw_frac_lip,
+                                                             timesteps_per_month,
+                                                             body_w_ave,
+                                                             average_birth_lipid_fraction_)
 
-            # how many zeros are equivalent to 25 years? 
-            # First run: add nothing to the front and 0*25years of zero steps in back
-            # for gen in range(0, gens + 1):
-            #     (spl_bw_deriv_child) = mass_spline(study_start_year + gen * aig_mother,
-            #                                        study_end_year + gen * aig_mother,
-            #                                        bw_frac_lip,
-            #                                        timesteps_per_month,
-            #                                        body_w_ave,
-            #                                        average_birth_lipid_fraction_)
+            if np.all(gens >= 1):
+                start_dydt_gen = []
+                start_dydt_gen.append(start_array_dydt)
+                for i in range(1, gens - 1):
+                    start_dydt_gen.append([x + i for x in start_array_dydt])
+                start_dydt_gen = np.array(start_dydt_gen)
 
-        if gens >= 1:
-            start_dydt_gen = []
-            start_dydt_gen.append(start_array_dydt)
-            for i in range(1, gens - 1):  # +1
-                start_dydt_gen.append([x + i for x in start_array_dydt])
-            start_dydt_gen = np.array(start_dydt_gen)
-
-        print start_dydt_gen
         odes_per_gen = range(0, num_odes_in_gen)
-        dydt_matrix = np.zeros(
-            shape=(len(odes_per_gen), gens), dtype=object)
+        dydt_matrix = np.zeros(shape=(len(odes_per_gen), gens), dtype=object)
 
         order_array_counter = np.array(
             range(0, gens * len(odes_per_gen)))
 
-        itr_mtrx = start_dydt_gen  # order_array_counter.reshape(
-        #(len(odes_per_gen), gens), order='F')
-
-        print itr_mtrx
+        itr_mtrx = start_dydt_gen
 
         def body_mass(t, y):
-
-            # print intake
             cntr = 0
-            # print gens
             for gen in range(0, gens):
 
                 k_elim = np.log(2) / 5
                 k_lac = 1e-1
+
+                # Note; unused, but provided for tracking purposes
                 ode_numbers = start_dydt_gen[:, gen]
                 cgbt = aig_mother[gen]  # age the mother gives birth
                 ngbt = cbtg_child[gen]
                 cgdt = aigd_mother[gen]
-                # print ngbt
-                # print 'gen:', gen, 'cntr:',cntr (cntr = counter)
-                # print bw_spl_der(t)
 
                 if gen == 0:
                     for ode in odes_per_gen:
-                        # could be [0-4][cntr]
                         dydt_matrix[0][gen] = bw_spl_der(t)
-
-                        dydt_matrix[1][gen] = intakeCall(
-                            t) * y[0] - k_elim * y[0] - k_lac * y[0]
+                        dydt_matrix[1][gen] = intakeCall(t) * y[0] - k_elim * y[0] - k_lac * y[0]
                         dydt_matrix[2][gen] = k_lac * y[0] - k_elim * y[2]
 
-                        # todo(create a function that starts the mass at
-                        # t+birthtime*gen and is 0 before)
+                        # todo(create a function that starts the mass at t+birthtime*gen and is 0 before)
                         dydt_matrix[3][gen] = bw_spl_der(t)
 
-                elif gen >= 1:
+                elif gen >= 0:
                     t_r = t + gen * 25
 
-                    # cntr = cntr + 1
-                    # dydt_matrix[0][gen] = bw_spl_der(t_r)
-                    # dydt_matrix[1][gen] = intakeCall(t_r) - k_elim * y[itr_mtrx[1]
-                    #                                                    [cntr] - 1] - k_lac * y[itr_mtrx[1][cntr] - 1]
-                    # dydt_matrix[2][gen] = k_lac * y[itr_mtrx[2]
-                    #                                  [cntr] - 2] - k_elim * y[itr_mtrx[2][cntr]]
-                    # dydt_matrix[3][gen] = bw_spl_der(t_r)
+                    cntr = np.int(cntr + 1)
+                    # print np.int(itr_mtrx[0][cntr] - 1), 'cntr'
+                    '''
+                    The first generation's mass balance should be specified above. Every other generations balance,
+                    assuming it's the same, can be specified here.
+
+                    Note that 'cntr' variable is a loop tracking tool. To specify that the previous box's mass balance
+                    should be employed, use itr_mtrx[0][cntr]-X), where X is the total number of mass balances - 1.
+                    This is because the array goes from 0 to 3, with length 4.
+
+                    Use the np.int() to surround the itr_mtrx calls because arrays should be tracked with
+                    integers, not floats.
+
+                    You can add more mass balances, but do not change dydt_matrix[0][gen] label.
+                    This is because these are a placeholder variables that are reorganized from an array to
+                    a matrix.
+
+                    '''
+                    dydt_matrix[0][gen] = bw_spl_der(t_r)
+                    dydt_matrix[1][gen] = intakeCall(t_r) - k_elim * y[np.int(itr_mtrx[0]
+                                                                              [cntr] - 1)] - k_lac * y[
+                        np.int(itr_mtrx[0][cntr] - 1)]
+                    dydt_matrix[2][gen] = k_lac * y[np.int(itr_mtrx[0]
+                                                           [cntr] - 2)] - k_elim * y[np.int(itr_mtrx[0][cntr] - 1)]
+                    dydt_matrix[3][gen] = bw_spl_der(t_r)
 
             dydt = np.ravel(dydt_matrix, order='F')
-            # print dydt[:][0]
 
             return dydt
 
@@ -282,10 +288,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
         # create vectors to store trajectories
         ode_init = np.zeros((np.int(num_steps) * gens * 4))
-        ode_init_matrix = ode_init.reshape(
-            (4 * gens, num_steps), order='F')
+        ode_init_matrix = ode_init.reshape((4 * gens, np.int(num_steps)), order='F')
         iter_odes = range(0, 4 * gens, 1)
-        print iter_odes
 
         # initialize k for while loop
         k = 1
@@ -296,21 +300,36 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                 ode_init_matrix[ode][k] = r.y[ode]
             k += 1
 
-        ax1 = plt.subplot(1, 1, 0)
-        for ode in iter_odes: 
+
+
+        for ode in iter_odes:
+            ax1 = plt.subplot(len(iter_odes),1, iter_odes[ode]+1)
             plt.plot(t, ode_init_matrix[ode][:])
-            # ax1.plot(t, ode_init_matrix[ode][:])
+            ax1.plot(t, ode_init_matrix[ode][:])
+            # ax1.legend(iter_odes[ode])
             ax1.set_xlim(t_start, t_final)
             ax1.grid('on')
+            # plt.show()
+
         plt.xlim(t_start, t_final)
-        # 
+        plt.legend(iter_odes)
         plt.show()
 
         return (y, t)
 
     y = []
-    (y, t) = generation_mass_balance(y, 'hcb', 1, t_start, t_final, delta_t,
-                                     intakeCall, spl_bw_deriv, prg_intrvl, lifespan, num_steps)
+
+    (y, t) = generation_mass_balance(y=y,
+                                     congener='hcb',
+                                     gens=1,
+                                     simulation_start=1921,
+                                     simulation_end=2100,
+                                     delta_t=delta_t,
+                                     intakeCall=intakeCall,
+                                     bw_spl_der=spl_bw_deriv,
+                                     prg_intrvl=prg_intrvl,
+                                     lifespan=lifespan,
+                                     num_steps=num_steps)
 
     '''
     Mass balance equations:
@@ -338,40 +357,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     # ax1.set_xlabel('Age [years]')
     # ax1.set_ylabel('Mother mass [kg]')
     # ax1.grid('on')
-
-    # ax2 = plt.subplot(512)
-    # ax2.plot(t / 12, mass_chemical_in_mother, 'r')
-    # ax2.set_xlim(t_start, t_final / 12)
-    # ax2.set_xlabel('Age [years]')
-    # ax2.set_ylabel('Mass of chemical in mother [Kg]')
-    # ax2.grid('on')
-
-    # ax3 = plt.subplot(513)
-    # ax3.plot(t / 12, mass_chemical_in_child, 'r')
-    # ax3.set_xlim(t_start, t_final / 12)
-    # ax3.set_xlabel('Age [years]')
-    # ax3.set_ylabel('Mass of chemical in child [Kg]')
-    # ax3.grid('on')
-
-    # ax4 = plt.subplot(514)
-    # ax4.plot(t / 12, child_mass, 'r')
-    # ax4.set_xlim(t_start, t_final / 12)
-    # ax4.set_xlabel('Age [years]]')
-    # ax4.set_ylabel('Mass of child [Kg]')
-    # ax4.grid('on')
-
-    # ax5 = plt.subplot(515)
-    # ax5.plot(intake_curve_track_child, 'r')
-    # # ax5.set_xlim(t_start, t_final/12)
-    # ax5.set_xlabel('Age [years]]')
-    # ax5.set_ylabel('Intake Intensity [ng/kg/m]')
-    # ax5.grid('on')
-
-    # plt.show()
-    # plt.close('all')
-
-    # plt.plot(intake_curve_track_child)
-    # plt.show()
 
 
 main()
