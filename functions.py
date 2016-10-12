@@ -145,3 +145,22 @@ def intake_int_dist(peak_intensity, peak_year, year_begin, year_end, delta_t):
     else:
         print("clipped symettric intensity distribution")
         # todo(add symettric intensity distribution when clipped)
+
+
+def mass_spline(study_start_year,
+                study_end_year,
+                bw_frac_lip):
+    bw_frac_lip = pd.read_csv(bw_frac_lip)
+    bw_frac_lip['mass_lipids_kg'] = bw_frac_lip.apply(cal_m_lip, 1)
+
+    # step 1: paramterize growth with spline interpretation
+    y_bm = np.array(bw_frac_lip['mass_lipids_kg'])
+
+    x_bm = np.linspace(study_start_year, study_end_year, num=len(y_bm))
+    spl_bw = interpolate.InterpolatedUnivariateSpline(
+        x_bm, y_bm)
+
+    # step 2: get derivative of spline (for dydt kinetics)
+    spl_bw_deriv = spl_bw.derivative()
+
+    return spl_bw_deriv, spl_bw

@@ -103,36 +103,12 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
     bm_data_err(cte, cong_spag_df)
 
     if bw_frac_lip:
-        def mass_spline(study_start_year,
-                        study_end_year,
-                        bw_frac_lip,
-                        t_step,
-                        body_w_ave,
-                        average_birth_lipid_fraction_):
-            bw_frac_lip = pd.read_csv(bw_frac_lip)
-            bw_frac_lip['mass_lipids_kg'] = bw_frac_lip.apply(cal_m_lip, 1)
-
-            # step 1: paramterize growth with spline interpretation
-            y_bm = np.array(bw_frac_lip['mass_lipids_kg'])
-
-            x_bm = np.linspace(study_start_year, study_end_year, num=len(y_bm))
-            spl_bw = interpolate.InterpolatedUnivariateSpline(
-                x_bm, y_bm)
-
-            # step 2: get derivative of spline (for dydt kinetics)
-            spl_bw_deriv = spl_bw.derivative()
-
-            return spl_bw_deriv, spl_bw
 
         (spl_bw_deriv, spl_bw) = mass_spline(study_start_year,
                                              study_end_year,
-                                             bw_frac_lip,
-                                             timesteps_per_month,
-                                             body_w_ave,
-                                             average_birth_lipid_fraction_)
+                                             bw_frac_lip)
 
-    # TODO(Automate entry of peak year and peak max)
-    intakeCall = intake_int_dist(80, 1977, t_start, t_final+average_lact_time_months_, delta_t)
+    intakeCall = intake_int_dist(80, 1977, t_start, t_final, delta_t)
 
     def generation_mass_balance(y,
                                 congener,
@@ -199,14 +175,6 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         """
 
         for gen in range(0, gens + 1):
-            intakeCall = intake_int_dist(80, 1977, t_start, t_final+ aig_mother[gen], delta_t)
-            print intakeCall(1)
-            (spl_bw_deriv_child, spl_bw_child) = mass_spline(study_start_year + aig_mother[gen],
-                                                             study_end_year + aig_mother[gen],
-                                                             bw_frac_lip,
-                                                             timesteps_per_month,
-                                                             body_w_ave,
-                                                             average_birth_lipid_fraction_)
 
             if np.all(gens >= 1):
                 start_dydt_gen = []
@@ -221,7 +189,8 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
         order_array_counter = np.array(
             range(0, gens * len(odes_per_gen)))
 
-        itr_mtrx = start_dydt_gen
+        # itr_mtrx = start_dydt_gen
+        itr_mtrx = order_array_counter.reshape((len(odes_per_gen), gen), order='F')
 
         def body_mass(t, y):
             cntr = 0
@@ -236,20 +205,35 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                 ngbt = cbtg_child[gen]
                 cgdt = aigd_mother[gen]
 
+
+
                 if gen == 0:
+
                     for ode in odes_per_gen:
-                        dydt_matrix[0][gen] = bw_spl_der(t)
-                        dydt_matrix[1][gen] = intakeCall(t) * y[0] - k_elim * y[0] - k_lac * y[0]
-                        dydt_matrix[2][gen] = k_lac * y[0] - k_elim * y[2]
+                        if np.all(t < t_start + aigd_mother[gen]):
+                            print t, 't,aigdmother'
+                            bsd = bw_spl_der(t)
 
-                        # todo(create a function that starts the mass at t+birthtime*gen and is 0 before)
-                        dydt_matrix[3][gen] = bw_spl_der(t)
+                        elif np.all(t >= t_start + aigd_mother[gen]):
+                            print t_start + aigd_mother[gen]
+                            bsd = 0
 
-                elif gen >= 0:
-                    t_r = t + gen * 25
-
+                        # print itr_mtrx[ode][cntr]
+                        dydt_matrix[0][gen] = bsd
+                        dydt_matrix[1][gen] = intakeCall(t) * y[0] - k_elim * y[0] - k_lac * y[1]
+                        dydt_matrix[2][gen] = k_lac * y[1] - k_elim * y[2]
+                        dydt_matrix[3][gen] = bsd
+                        # print ode, cntr, 'ode,cntr'
                     cntr = np.int(cntr + 1)
-                    # print np.int(itr_mtrx[0][cntr] - 1), 'cntr'
+
+
+                elif gen > 0:
+                    # cntr = np.int(cntr + 1)
+                    # print gen, 'gen'
+                    # print itr_mtrx,'itrmatrix'
+                    t_r = t + gen*aig_mother[gen]
+
+
                     '''
                     The first generation's mass balance should be specified above. Every other generations balance,
                     assuming it's the same, can be specified here.
@@ -265,14 +249,47 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
                     This is because these are a placeholder variables that are reorganized from an array to
                     a matrix.
 
-                    '''
-                    dydt_matrix[0][gen] = bw_spl_der(t_r)
-                    dydt_matrix[1][gen] = intakeCall(t_r) - k_elim * y[np.int(itr_mtrx[0]
-                                                                              [cntr] - 1)] - k_lac * y[
-                        np.int(itr_mtrx[0][cntr] - 1)]
-                    dydt_matrix[2][gen] = k_lac * y[np.int(itr_mtrx[0]
-                                                           [cntr] - 2)] - k_elim * y[np.int(itr_mtrx[0][cntr] - 1)]
-                    dydt_matrix[3][gen] = bw_spl_der(t_r)
+                    5 generations
+                    [[ 0  4  8 12 16]
+                    [ 1  5  9 13 17]
+                    [ 2  6 10 14 18]
+                    [ 3  7 11 15 19]]
+
+                    np.int(itr_mtrx[0][cntr]) is 4, 8, 12 and 16.
+                    np.int(itr_mtrx[1][cntr]) is 5, 9, 13 and 17.
+                    np.int(itr_mtrx[2][cntr]) is 6, 10, 14 and 18.
+                    np.int(itr_mtrx[3][cntr]) is 7, 11, 15 and 19.
+
+                    To acess the previous generation, subtract 1 from cntr
+                    np.int(itr_mtrx[0][cntr-1]) is 0, 4, 8, and 12.
+                    np.int(itr_mtrx[1][cntr-1]) is 0, 5, 9, and 13.
+                    np.int(itr_mtrx[2][cntr-1]) is 0, 6, 10, and 14.
+                    np.int(itr_mtrx[3][cntr-1]) is 0, 7, 11, and 15.
+
+
+                   '''
+                    if np.all(t < aigd_mother[gen]):
+                        bsd = 0
+                        itc = 0
+
+                    elif np.all((t >= aigd_mother[gen]) & (t < t_start + aigd_mother[gen])):
+                        bsd = bw_spl_der(t_r)
+                        itc = intakeCall(t_r)
+
+                    elif np.all(t >= t_start + aigd_mother[gen]):
+                        bsd = 0
+                        itc = 0
+
+                    # generate bw_splt_der's for each generation.
+                    # generate intake calls for each generation.
+
+                    for ode in odes_per_gen:
+                        dydt_matrix[0][cntr] = bsd
+                        dydt_matrix[1][cntr] = itc - k_elim * y[np.int(itr_mtrx[1][cntr-1])] - k_lac * y[np.int(itr_mtrx[1][cntr-1])]
+                        dydt_matrix[2][cntr] = k_lac * y[np.int(itr_mtrx[1][cntr-1])] - k_elim * y[np.int(itr_mtrx[2][cntr])]
+                        dydt_matrix[3][cntr] = bsd
+
+                    cntr = np.int(cntr + 1)
 
             dydt = np.ravel(dydt_matrix, order='F')
 
@@ -321,7 +338,7 @@ def main(n_optimization_runs=N_OPTIMIZATION_RUNS_,
 
     (y, t) = generation_mass_balance(y=y,
                                      congener='hcb',
-                                     gens=1,
+                                     gens=2,
                                      simulation_start=1921,
                                      simulation_end=2100,
                                      delta_t=delta_t,
