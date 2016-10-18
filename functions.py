@@ -13,6 +13,164 @@ from scipy import integrate
 from matplotlib.pylab import *
 
 
+def generation_mass_balance(y,
+                            congener,
+                            gens,
+                            simulation_start,
+                            simulation_end,
+                            delta_t,
+                            intakeCall,
+                            prg_intrvl,
+                            lifespan,
+                            num_steps,
+                            bw_frac_lip,
+                            k_lac,
+                            average_lact_time):
+    def body_mass(t, y):
+        '''
+        The first generation's mass balance should be specified above. Every other generations balance,
+        assuming it's the same, can be specified here.
+
+        Note that 'cntr' variable is a loop tracking tool. To specify that the previous box's mass balance
+        should be employed, use itr_mtrx[0][cntr]-X), where X is the total number of mass balances - 1.
+        This is because the array goes from 0 to 3, with length 4.
+
+        Use the np.int() to surround the itr_mtrx calls because arrays should be tracked with
+        integers, not floats.
+
+        You can add more mass balances, but do not change dydt_matrix[0][gen] label.
+        This is because these are a placeholder variables that are reorganized from an array to
+        a matrix.
+
+        For notes:
+        aig_mother[gen]  # age the mother gives birth
+        cbtg_child[gen]  # year child is born from previous gen
+        aigd_mother[gen]  # age of death of the mother
+
+       '''
+        cntr = 0
+
+        for gen in range(0, gens):
+
+            k_elim = np.log(2) / 5
+
+            if gen == 0:
+                k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
+                dydt_matrix[0][cntr] = bw_spl_der[0](t)
+                dydt_matrix[1][cntr] = intakeCall(t) * y[0] \
+                                       - k_elim * y[1] \
+                                       - k_lac_m2c_r * y[1]
+                cntr = np.int(cntr + 1)
+
+            elif gen > 0:
+                k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
+                k_lac_2cfm_r = k_lac_m2c(t, gen - 1, k_lac, cbtg_child, average_lact_time)
+
+                dydt_matrix[0][cntr] = bw_spl_der[gen](t)
+                dydt_matrix[1][cntr] = intakeCall(t) * y[np.int(itr_mtrx[0][cntr])] \
+                                       + k_lac_2cfm_r * y[np.int(itr_mtrx[1][cntr - 1])] \
+                                       - k_lac_m2c_r * y[np.int(itr_mtrx[1][cntr])] \
+                                       - k_elim * y[np.int(itr_mtrx[1][cntr])]
+
+                cntr = np.int(cntr + 1)
+
+        dydt = np.ravel(dydt_matrix, order='F')
+
+        return dydt
+
+    # dynamically set the number of odes as a function of gens
+    n = len(y) * gens
+    num_odes_in_gen = 2
+    n = num_odes_in_gen * gens
+    dydt = np.zeros((n, 1))
+
+    # simulation bounds
+    t_start = np.float(simulation_start)
+    t_final = np.float(simulation_end)
+
+    start_array_dydt = linspace(0, num_odes_in_gen * (gens - 1), gens)
+
+    # automatically generate generational critical age definitions
+    aig_mother = linspace(0,
+                          prg_intrvl * (gens),
+                          gens + 1)
+
+    cbtg_child = linspace(prg_intrvl,
+                          prg_intrvl * (gens + 1),
+                          gens + 1)
+
+    aigd_mother = linspace(lifespan,
+                           (lifespan + (25 * gens)),
+                           gens + 1)
+
+    for gen in range(0, gens + 1):
+        if np.all(gens >= 1):
+            start_dydt_gen = []
+            start_dydt_gen.append(start_array_dydt)
+            for i in range(1, gens - 1):
+                start_dydt_gen.append([x + i for x in start_array_dydt])
+            start_dydt_gen = np.array(start_dydt_gen)
+
+    odes_per_gen = range(0, num_odes_in_gen)
+    dydt_matrix = np.zeros(shape=(len(odes_per_gen),
+                                  gens),
+                           dtype=object)
+
+    order_array_counter = np.array(range(0, gens * len(odes_per_gen)))
+    itr_mtrx = order_array_counter.reshape((len(odes_per_gen), gen),
+                                           order='F')
+
+    bw_spl_der = age_splines(gens,
+                             aig_mother,
+                             aigd_mother,
+                             t_start,
+                             t_final,
+                             delta_t,
+                             bw_frac_lip)
+
+    t = np.zeros((np.int(num_steps), 1))
+
+    # use ``vode`` with "backward differentiation formula" or 'bdf'
+    r = integrate.ode(body_mass).set_integrator('vode',
+                                                order=4,
+                                                nsteps=num_steps,
+                                                min_step=1e-10,
+                                                method='bdf')
+
+    y0 = np.zeros((np.int(gens * num_odes_in_gen), 1))
+    r.set_initial_value(y0, t_start)
+
+    # create vectors to store trajectories
+    ode_init = np.zeros((np.int(num_steps) * gens * num_odes_in_gen))
+    ode_init_matrix = ode_init.reshape((num_odes_in_gen * gens,
+                                        np.int(num_steps)),
+                                       order='F')
+
+    iter_odes = range(0, num_odes_in_gen * gens, 1)
+
+    # initialize k for while loop
+    k = 1
+    while r.successful() and k < num_steps:
+        r.integrate(r.t + delta_t)
+        t[k] = r.t
+        for ode in iter_odes:
+            ode_init_matrix[ode][k] = r.y[ode]
+        k += 1
+
+    for ode in iter_odes:
+        ax1 = plt.subplot(len(iter_odes), 1, iter_odes[ode] + 1)
+        plt.plot(t, ode_init_matrix[ode][:])
+        ax1.plot(t, ode_init_matrix[ode][:])
+        ax1.set_xlim(t_start, t_final)
+        ax1.grid('on')
+
+    plt.xlim(t_start, t_final)
+    plt.legend(iter_odes)
+    plt.show()
+
+    return (y, t)
+
+
 def mat_to_df(path):
     mat = scipy.io.loadmat(path,
                            matlab_compatible=True,
@@ -34,6 +192,7 @@ def bm_data_err(a, b):
         print(''' Biomonitoring data may be available, but not
         evaluating chemicals:'''.replace(
             '/t', ''), eval_bio_diff)
+    return eval_bio_diff
 
 
 # calculate mass of lipids for each month
@@ -80,7 +239,7 @@ def bm_data_eval(bm_data, cte, kinetics_order, plot_kinetics):
                 plt.plot(np.exp(x), np.exp(y), color=c,
                          marker='o', linestyle='', label=str(
                         'biomonitoring data; ' + congener))
-                plt.plot(np.exp(x), np.exp(yy_regression_line),
+                plt.plot(np.exp(x), np.exp(y_regression_line),
                          color=c, marker='', linestyle='-')
 
     if plot_kinetics:
@@ -149,7 +308,6 @@ def asym_int_dist(peak_intensity, peak_year, year_begin, year_end, delta_t):
     year_begin = 0
     num_steps_up = (peak_year - year_begin) / delta_t
     x_up_t_step = linspace(year_begin, peak_year, num=num_steps_up)
-    print(x_up_t_step)
 
     x_up = np.array([0, peak_year - year_begin])
     y_up = np.log([1e-10, peak_intensity])
@@ -172,14 +330,12 @@ def asym_int_dist(peak_intensity, peak_year, year_begin, year_end, delta_t):
 
     y_reg_line_down = polyval([slope_d, intercept_d], x_d_interp)
     dswing_reg_lin = np.exp(y_reg_line_down)
-    print(dswing_reg_lin)
 
     # concatenate the up and down swing sides
     y_up_down = np.concatenate((upswing_reg_lin, dswing_reg_lin[1:]))
     x_up_down = np.concatenate((x_up_interp, x_d_interp[1:]))
 
     peak_intensity_spline = interpolate.InterpolatedUnivariateSpline(x_up_down, y_up_down)
-    print(peak_intensity_spline(peak_year))
 
     return peak_intensity_spline
 
@@ -191,7 +347,6 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
     num_steps_before = []
     num_steps_after = []
     for gen in range(0, gens):
-        print(gen)
         num_steps_before.append(np.int((aig_mother[gen] - year_begin) / delta_t))
         num_steps_after.append(np.int((year_end - aigd_mother[gen]) / delta_t))
 
@@ -202,13 +357,10 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
         y_after = []
         x_after = []
         if num_steps_before[gen] == 0:
-
-            # add in spline
             y_gen = np.array(bw_frac_lip_df['mass_lipids_kg'])
             x_gen = linspace(aig_mother[gen], aigd_mother[gen], len(y_gen))
 
             if num_steps_after[gen] > 0:
-                # create zeros from death of gen 1 to the end
                 y_after = np.zeros(np.int(num_steps_after[gen]))
                 x_after = linspace(aigd_mother[gen], year_end, num_steps_after[gen])
 
@@ -217,20 +369,15 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
             x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
             age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
-
-            age_spline_df = age_spline_df.append([age_spline], 1)
-
 
         elif num_steps_before[gen] > 0:
             y_before = np.zeros(np.int(num_steps_before[gen]))
             x_before = linspace(aig_mother[gen - 1], aig_mother[gen], num_steps_before[gen])
 
-            # add in spline
             y_gen = np.array(bw_frac_lip_df['mass_lipids_kg'])
             x_gen = linspace(aig_mother[gen], aigd_mother[gen], len(y_gen))
 
             if num_steps_after[gen] > 0:
-                # create zeros from death of gen 1 to the end
                 y_after = np.zeros(np.int(num_steps_after[gen]))
                 x_after = linspace(aigd_mother[gen], year_end, num_steps_after[gen])
 
@@ -240,79 +387,70 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
 
             age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
 
-            age_spline_df = age_spline_df.append([age_spline], 1)
+        age_spline_df = age_spline_df.append([age_spline], 1)
 
     return age_spline_df[0].ravel()
 
 
 # todo(This function in progress)
-def k_lac_train(gens, cbtg_child, aig_mother, aigd_mother, year_begin, year_end, delta_t):
+def k_lac_train(k_lac, gens, cbtg_child, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw_frac_lip,
+                average_lact_time):
+    ''' look at the influence of variable lactation length. Variable lactation coefficients. '''
     num_steps_before = []
     num_steps_after = []
+    gen_len = np.int(1e3)
+
     for gen in range(0, gens):
-        print(gen)
         num_steps_before.append(np.int((cbtg_child[gen] - year_begin) / delta_t))
-        num_steps_after.append(np.int((year_end - aigd_mother[gen]) / delta_t))
+        num_steps_after.append(np.int((year_end - (cbtg_child[gen] + average_lact_time[gen])) / delta_t))
 
-    print(num_steps_before)
+    lac_spline_df = pd.DataFrame()
 
-    age_spline_df = pd.DataFrame()
     for gen in range(0, gens):
         y_before = []
         x_before = []
         y_after = []
         x_after = []
+
         if num_steps_before[gen] == 0:
-            pass
+            y_gen = k_lac[gen] * gen_len
+            x_gen = linspace(cbtg_child[gen], cbtg_child[gen] + average_lact_time[gen], gen_len)
 
-            # add in spline
-            # y_gen = np.array(bw_frac_lip_df['mass_lipids_kg'])
-            # x_gen = linspace(aig_mother[gen], aigd_mother[gen], len(y_gen))
-            #
-            # if num_steps_after[gen] > 0:
-            #     # create zeros from death of gen 1 to the end
-            #     y_after = np.zeros(np.int(num_steps_after[gen]))
-            #     x_after = linspace(aigd_mother[gen], year_end, num_steps_after[gen])
-            #
-            # # concatenate everything, but remove overlaps.
-            # y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
-            # x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
-            #
-            # age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
-            #
-            # age_spline_df = age_spline_df.append([age_spline], 1)
+            if num_steps_after[gen] > 0:
+                y_after = np.zeros(np.int(num_steps_after[gen]))
+                x_after = linspace(cbtg_child[gen] + average_lact_time[gen], year_end, num_steps_after[gen])
 
+            # concatenate everything, but remove overlaps.
+            y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
+            x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
-            # elif num_steps_before[gen] > 0:
-            #     y_before = np.zeros(np.int(num_steps_before[gen]))
-            #     x_before = linspace(aig_mother[gen - 1], aig_mother[gen], num_steps_before[gen])
+            lac_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
 
-            # # add in spline
-            # y_gen = np.array(bw_frac_lip_df['mass_lipids_kg'])
-            # x_gen = linspace(aig_mother[gen], aigd_mother[gen], len(y_gen))
-            #
-            # if num_steps_after[gen] > 0:
-            #     # create zeros from death of gen 1 to the end
-            #     y_after = np.zeros(np.int(num_steps_after[gen]))
-            #     x_after = linspace(aigd_mother[gen], year_end, num_steps_after[gen])
-            #
-            # # concatenate everything, but remove overlaps.
-            # y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
-            # x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
-            #
-            # age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
-            #
-            # age_spline_df = age_spline_df.append([age_spline], 1)
+        elif num_steps_before[gen] > 0:
+            y_before = np.zeros(np.int(num_steps_before[gen]))
+            x_before = linspace(aig_mother[gen], cbtg_child[gen], num_steps_before[gen])
 
-            # return age_spline_df[0].ravel()
+            y_gen = [k_lac[gen]] * gen_len
+            x_gen = linspace(cbtg_child[gen], (cbtg_child[gen] + average_lact_time[gen]), gen_len)
+
+            if num_steps_after[gen] > 0:
+                y_after = np.zeros(np.int(num_steps_after[gen]))
+                x_after = linspace((cbtg_child[gen] + average_lact_time[gen]), year_end, num_steps_after[gen])
+
+            y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
+            x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
+
+            lac_spline = interpolate.UnivariateSpline(x_all, y_all)
+
+        lac_spline_df = lac_spline_df.append([lac_spline], 1)
+
+    return lac_spline_df[0].ravel()
 
 
-gens = 3
-delta_t = 0.1
-aig_mother = [0., 25., 50.]
-year_begin = 0
-aigd_mother = [80., 105., 130.]
-year_end = 120
-cbtg_child = [25., 50., 75.]
-
-k_lac_train(gens, cbtg_child, aig_mother, aigd_mother, year_begin, year_end, delta_t)
+def k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time):
+    # k_lac_r = 0.
+    if (t >= cbtg_child[gen]) & (t <= cbtg_child[gen] + average_lact_time[gen]):
+        k_lac_r = k_lac[gen]
+    else:
+        k_lac_r = 0.
+    return k_lac_r
