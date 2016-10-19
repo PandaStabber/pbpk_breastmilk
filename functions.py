@@ -1,14 +1,11 @@
 # coding=utf-8
+# !/usr/bin/env python3
+
 import matplotlib.pyplot as plt
 import scipy.io
 import pandas as pd
-from scipy import polyval, stats
-import numpy as np
-import os
-import matplotlib.cm as cm
+from scipy import stats
 import scipy.interpolate as interpolate
-from scipy.integrate import odeint
-from scipy.ndimage.interpolation import shift
 from scipy import integrate
 from matplotlib.pylab import *
 
@@ -25,7 +22,8 @@ def generation_mass_balance(y,
                             num_steps,
                             bw_frac_lip,
                             k_lac,
-                            average_lact_time):
+                            average_lact_time,
+                            k_elim):
     def body_mass(t, y):
         '''
         The first generation's mass balance should be specified above. Every other generations balance,
@@ -52,10 +50,10 @@ def generation_mass_balance(y,
 
         for gen in range(0, gens):
 
-            k_elim = np.log(2) / 5
+            k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
+            k_lac_2cfm_r = k_lac_m2c(t, gen - 1, k_lac, cbtg_child, average_lact_time)
 
             if gen == 0:
-                k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
                 dydt_matrix[0][cntr] = bw_spl_der[0](t)
                 dydt_matrix[1][cntr] = intakeCall(t) * y[0] \
                                        - k_elim * y[1] \
@@ -63,9 +61,6 @@ def generation_mass_balance(y,
                 cntr = np.int(cntr + 1)
 
             elif gen > 0:
-                k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
-                k_lac_2cfm_r = k_lac_m2c(t, gen - 1, k_lac, cbtg_child, average_lact_time)
-
                 dydt_matrix[0][cntr] = bw_spl_der[gen](t)
                 dydt_matrix[1][cntr] = intakeCall(t) * y[np.int(itr_mtrx[0][cntr])] \
                                        + k_lac_2cfm_r * y[np.int(itr_mtrx[1][cntr - 1])] \
@@ -102,6 +97,10 @@ def generation_mass_balance(y,
     aigd_mother = linspace(lifespan,
                            (lifespan + (25 * gens)),
                            gens + 1)
+
+    print("aig_mother",aig_mother)  # age the mother gives birth
+    print("cbtg_child",cbtg_child)  # year child is born from previous gen
+    print("aigd_mother",aigd_mother)  # age of death of the mother
 
     for gen in range(0, gens + 1):
         if np.all(gens >= 1):
@@ -305,7 +304,7 @@ def intake_int_dist(peak_intensity, peak_year, year_begin, year_end, delta_t):
 
 
 def asym_int_dist(peak_intensity, peak_year, year_begin, year_end, delta_t):
-    year_begin = 0
+    # year_begin = 0
     num_steps_up = (peak_year - year_begin) / delta_t
     x_up_t_step = linspace(year_begin, peak_year, num=num_steps_up)
 
@@ -391,8 +390,6 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
 
     return age_spline_df[0].ravel()
 
-
-# todo(This function in progress)
 def k_lac_train(k_lac, gens, cbtg_child, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw_frac_lip,
                 average_lact_time):
     ''' look at the influence of variable lactation length. Variable lactation coefficients. '''
