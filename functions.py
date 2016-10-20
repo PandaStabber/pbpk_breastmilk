@@ -451,3 +451,84 @@ def k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time):
     else:
         k_lac_r = 0.
     return k_lac_r
+
+
+def bm_eval_(self, kin_order=1, plt_kin=True, out_kin=False, use_scipy_exp=False, p0=(1e-6, 1e-6, 1),
+             use_scipy_lin2exp=False):
+    kinetics_from_biomonitoring_data = []
+    bm_data = pd.read_csv(self.bm_data)
+    bm_data_t = bm_data.ix[:, 0]
+    colors = plt.cm.rainbow(np.linspace(0, 1, len(self.cte)))
+
+    def exp_fit(x, a, c, d):
+        return a * np.exp(-c * x) + d
+
+    x = np.array(bm_data_t)
+    yr1 = x[0]
+
+    for congener, c in zip(self.cte, colors):
+
+        if kin_order == 1:
+
+            x = x - x[0]
+            y = np.array(bm_data[congener])
+
+            if not all([use_scipy_exp, use_scipy_lin2exp]):
+
+                if use_scipy_exp:
+
+                    popt, pcov = curve_fit(exp_fit, x, y, p0=p0)
+
+                    if out_kin:
+                        print('congoner:', congener)
+                        print('exp reg stats: ')
+                        print("y = (", popt[0], ") * (e^(", -popt[1], " x )) + ", popt[2])
+                        print('note: x can be a range of years (e.g., 2000-2010),')
+                        print('or sequential (e.g.,''0-9). exp reg is performed by shifting x')
+                        print('such that x[0] is zero. When plotted, it is shifted back.')
+
+                    if plt_kin:
+                        # shift the x values back to their respective years
+                        x_shift = list(map(lambda x: x + yr1, x))
+                        plt.plot(x_shift, y, color=c, marker='o', linestyle='',
+                                 label=str('biomonitoring data; ' + congener))
+                        plt.plot(x_shift, exp_fit(x, *popt),
+                                 color=c, marker='', linestyle='-')
+
+                if use_scipy_lin2exp:
+                    y = np.log(np.array(bm_data[congener]))
+                    (slope, intercept, r_value, p_value,
+                     std_err) = stats.linregress(x, y)
+                    y_regression_line = np.polyval([slope, intercept], x)
+
+                    if out_kin:
+                        print('congoner:', congener)
+                        print('log-lin reg stats: ')
+                        print("ln(y) = (", intercept, ") + (", slope, ") x")
+
+                    if plt_kin:
+                        # shift the x values back to their respective years
+                        x_shift = list(map(lambda x: x + yr1, x))
+                        plt.plot(x_shift, np.exp(y), color=c, marker='o', linestyle='',
+                                 label=str('biomonitoring data; ' + congener))
+                        plt.plot(x_shift, np.exp(y_regression_line),
+                                 color=c, marker='', linestyle='-')
+
+
+        elif kin_order == 2:
+            x = np.log(np.array(bm_data_t))
+            y = np.log(np.array(bm_data[congener]))
+            (slope, intercept, r_value,
+             p_value, std_err) = stats.linregress(x, y)
+
+            y_regression_line = np.polyval([slope, intercept], x)
+            kinetics_from_biomonitoring_data.append(slope)
+            if plt_kin:
+                plt.plot(np.exp(x), np.exp(y), color=c,
+                         marker='o', linestyle='', label=str(
+                        'biomonitoring data; ' + congener))
+                plt.plot(np.exp(x), np.exp(y_regression_line),
+                         color=c, marker='', linestyle='-')
+
+    if plt_kin:
+        plt.show()
