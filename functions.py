@@ -1,6 +1,11 @@
 # coding=utf-8
 # !/usr/bin/env python3
 
+"""
+This file has been depreciated. It  still works, and is actually faster than the other,
+but it's written in an opaque and strange manner prior to developing the api contained in pk_milk.py
+
+"""
 import matplotlib.pyplot as plt
 import scipy.io
 import pandas as pd
@@ -55,6 +60,7 @@ def generation_mass_balance(y,
 
             if gen == 0:
                 dydt_matrix[0][cntr] = bw_spl_der[0](t)
+                # print(bw_spl_der[0](t))
                 dydt_matrix[1][cntr] = intakeCall(t) * y[0] \
                                        - k_elim * y[1] \
                                        - k_lac_m2c_r * y[1]
@@ -83,7 +89,6 @@ def generation_mass_balance(y,
     t_start = np.float(simulation_start)
     t_final = np.float(simulation_end)
 
-    start_array_dydt = linspace(0, num_odes_in_gen * (gens - 1), gens)
 
     # automatically generate generational critical age definitions
     aig_mother = linspace(0,
@@ -102,21 +107,18 @@ def generation_mass_balance(y,
     print("cbtg_child",cbtg_child)  # year child is born from previous gen
     print("aigd_mother",aigd_mother)  # age of death of the mother
 
-    for gen in range(0, gens + 1):
-        if np.all(gens >= 1):
-            start_dydt_gen = []
-            start_dydt_gen.append(start_array_dydt)
-            for i in range(1, gens - 1):
-                start_dydt_gen.append([x + i for x in start_array_dydt])
-            start_dydt_gen = np.array(start_dydt_gen)
+
+
 
     odes_per_gen = range(0, num_odes_in_gen)
     dydt_matrix = np.zeros(shape=(len(odes_per_gen),
                                   gens),
                            dtype=object)
 
+    # print (gen, 'look here for gen 2')
+
     order_array_counter = np.array(range(0, gens * len(odes_per_gen)))
-    itr_mtrx = order_array_counter.reshape((len(odes_per_gen), gen),
+    itr_mtrx = order_array_counter.reshape((len(odes_per_gen), gens),
                                            order='F')
 
     bw_spl_der = age_splines(gens,
@@ -369,6 +371,7 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
 
             age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
 
+
         elif num_steps_before[gen] > 0:
             y_before = np.zeros(np.int(num_steps_before[gen]))
             x_before = linspace(aig_mother[gen - 1], aig_mother[gen], num_steps_before[gen])
@@ -385,7 +388,8 @@ def age_splines(gens, aig_mother, aigd_mother, year_begin, year_end, delta_t, bw
             x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
             age_spline = interpolate.InterpolatedUnivariateSpline(x_all, y_all).derivative()
-
+            # plt.plot(age_spline(x_all))
+            plt.show()
         age_spline_df = age_spline_df.append([age_spline], 1)
 
     return age_spline_df[0].ravel()
@@ -437,7 +441,7 @@ def k_lac_train(k_lac, gens, cbtg_child, aig_mother, aigd_mother, year_begin, ye
             y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
             x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
-            lac_spline = interpolate.UnivariateSpline(x_all, y_all)
+            lac_spline = interpolate.UnivariateSpline(x_all, y_all).derivative()
 
         lac_spline_df = lac_spline_df.append([lac_spline], 1)
 

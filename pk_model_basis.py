@@ -25,11 +25,11 @@ cte_ = list(_CONGENERS_HALFLIFE_DICT.keys())
 TIMESTEPS_PER_MONTH = 1
 POP_START_YEAR_ = 0
 STUDY_START_YEAR_ = 0
-STUDY_END_YEAR_ = 2100 - 1921
+STUDY_END_YEAR_ = 100
 AGE_MAX_IN_YEARS_ = 80  # [years]
 ABSORP_FACTOR_ = 0.9  # absorbption factor [-]
-AVERAGE_LACT_TIME_ = [3] * 5  # months breastfeeding (generic source?)
-K_LAC_GEN = [1e-2] * 5
+AVERAGE_LACT_TIME_ = [0.5] * 5  # months breastfeeding (generic source?)
+K_LAC_GEN = [np.log(2)/5] * 5
 AGE_MOM_IN_YEARS_ = 25
 
 PEAK_DOSING_INTENSITY_ = 80  # [ng/kg/d]
@@ -72,7 +72,7 @@ def pk_model(bm_data=BIOMONITORING_DATA_ELIMINATION_,
     cong_spag_df = pd.read_csv(cong_spag)
     congener2eval = bm_data_err(cte, cong_spag_df)
 
-    intakeCall = asym_int_dist(peak_dose_intensity, 70, t_start, t_final, delta_t)
+    intakeCall = asym_int_dist(peak_dose_intensity, 35, t_start, t_final, delta_t)
     # intakeCall = intake_int_dist(peak_dose_intensity, 70, t_start, t_final, delta_t)
 
     y = []
@@ -94,6 +94,6 @@ def pk_model(bm_data=BIOMONITORING_DATA_ELIMINATION_,
 
 
 if __name__ == "__main__":
-    pk_model(gens = 3)
+    pk_model(gens = 4)
 
 
