@@ -53,6 +53,7 @@ def generation_mass_balance(y,
        '''
         cntr = 0
 
+
         for gen in range(0, gens):
 
             k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)

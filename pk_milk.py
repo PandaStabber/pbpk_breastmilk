@@ -102,6 +102,7 @@ class pk_milk():
             intake_intensity_spline = interpolate.InterpolatedUnivariateSpline(x_up_down, y_up_down)
 
         self.intake_intensity_curve = intake_intensity_spline
+
         return self
 
     def biomonitoring_eval_(self, biomonitoring_data,
