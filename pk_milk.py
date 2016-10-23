@@ -224,6 +224,8 @@ class pk_milk():
             x_before = []
             y_after = []
             x_after = []
+            age_spline_n = pd.DataFrame()
+            age_spline_d = pd.DataFrame()
             if num_steps_before[gen] == 0:
                 y_gen = lipid_mass_array
                 x_gen = np.linspace(self.brth_sched[gen], self.aigd_mother[gen], len(y_gen))
@@ -299,11 +301,11 @@ class pk_milk():
 
         def k_lac_m2c_(t, gen):
 
+            k_lac_m2c = 0
+
             if np.all((t >= self.cbtg_child[gen]) & (t <= self.cbtg_child[gen] + self.average_lact_time[gen])):
                 k_lac_m2c = self.k_lac[gen]
 
-            else:
-                k_lac_m2c = 0
             return k_lac_m2c
 
         for gen in range(0, self.gens):
@@ -314,7 +316,7 @@ class pk_milk():
                 # print(self.age_spline_derivative[1](t), t)
                 dydt_matrix[0][cntr] = self.age_spline_derivative[0](t)
                 dydt_matrix[1][cntr] = self.intake_intensity_curve(t) * y[0] \
-                                       - self.k_elim[gen] * y[1] \
+                                       - self.k_elim[0] * y[1] \
                                        - k_lac_mother_from_daughter * y[1]
                 cntr = np.int(cntr + 1)
 
@@ -342,7 +344,7 @@ class pk_milk():
         r = integrate.ode(self.body_mass).set_integrator('vode',
                                                          order=4,
                                                          nsteps=self.n_steps,
-                                                         min_step=1e-15,
+                                                         min_step=1e-11,
                                                          method='bdf')
 
         y0 = np.zeros((np.int(self.gens * self.odes_in_each_generation), 1))

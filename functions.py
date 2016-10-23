@@ -136,7 +136,7 @@ def generation_mass_balance(y,
     r = integrate.ode(body_mass).set_integrator('vode',
                                                 order=4,
                                                 nsteps=num_steps,
-                                                min_step=1e-10,
+                                                min_step=1e-12,
                                                 method='bdf')
 
     y0 = np.zeros((np.int(gens * num_odes_in_gen), 1))
