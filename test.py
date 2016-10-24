@@ -48,8 +48,8 @@ from pk_milk import pk_milk
 
 # In[2]:
 
-pk_milk_base = pk_milk(gens=4, y_start=0, y_end=205, lifespan=80,
-                       brth_age=100, average_lact_time=[10 / 12] * 5,
+pk_milk_base = pk_milk(gens=4, y_end=200, lifespan=80,
+                       brth_age=25, average_lact_time=[6 / 12] * 5,
                        k_lac=[1e-2] * 5, k_elim=[np.log(2) / 5] * 5)
 
 # In[3]:
@@ -99,10 +99,10 @@ print('k_congener_elimination:', k_congener, 'r^2: ', r_value)
 # plot the kinetics:
 
 x_shift = list(map(lambda x: x + year_one, x_adj_year))
-plt.plot(x_shift, col_congener, color='red', marker='o', linestyle='')
-plt.plot(x_shift, np.exp(y_congener_fitted),
-         color='blue', marker='', linestyle='-')
-plt.show()
+# plt.plot(x_shift, col_congener, color='red', marker='o', linestyle='')
+# plt.plot(x_shift, np.exp(y_congener_fitted),
+#          color='blue', marker='', linestyle='-')
+# plt.show()
 
 # ###  calculate the kinetics for a congener for all congeners
 
@@ -136,10 +136,10 @@ for congener, c in zip(list_of_congeners, colors):
     print('congoner:', congener, 'k_elim_congener: ', k_congener, 'r_value', r_value)
 
     x_shift = list(map(lambda x: x + year_one, x_adj_year))
-    plt.plot(x_shift, col_congener, color=c, marker='o', linestyle='')
-    plt.plot(x_shift, np.exp(y_congener_fitted),
-             color=c, marker='', linestyle='-')
-plt.show()
+    # plt.plot(x_shift, col_congener, color=c, marker='o', linestyle='')
+    # plt.plot(x_shift, np.exp(y_congener_fitted),
+    #          color=c, marker='', linestyle='-')
+# plt.show()
 
 # ## Determining lipid mass from bodyweight and lipid fraction.
 
@@ -158,12 +158,12 @@ lipid_mass_array = pk_milk_base.lipid_mass_from_bw_and_lipid_fraction(bodyweight
 # In[8]:
 
 # the curve is then a callable function that can be imported into the mass balance
-pk_milk_base.intake_intensity_curve_(method='asymettric_exp_up_and_down', peak_intensity=10)
+pk_milk_base.intake_intensity_curve_(method='asymettric_exp_up_and_down', year_peak= 56, peak_intensity=80e-9)
 
 # this function is stored in the pk_milk_base class (or whatever you name it) and can be recalled/plotted
 x_simulation = np.linspace(pk_milk_base.y_start, pk_milk_base.y_end, pk_milk_base.n_steps)
-plt.plot(x_simulation, pk_milk_base.intake_intensity_curve(x_simulation))
-plt.show()
+# plt.plot(x_simulation, pk_milk_base.intake_intensity_curve(x_simulation))
+# plt.show()
 
 # ## Generate the age timeline data.
 # Because multi-generational math requires keeping track of when each generation was born (or died), employ the age_timeline_ function.
@@ -177,36 +177,46 @@ pk_milk_base.age_timeline_()
 pk_milk_base.age_splines_(lipid_mass_array=lipid_mass_array)  # lipid_mass_array defined above.
 
 # if you want to plot the age splines output, you can. However, make sure not to plot the derivatives!
-for gen in range(0, pk_milk_base.gens):
-    plt.plot(x_simulation, pk_milk_base.age_spline[gen](x_simulation))
-plt.show()
+# for gen in range(0, pk_milk_base.gens):
+#     plt.plot(x_simulation, pk_milk_base.age_spline_derivative[gen](x_simulation))
+# plt.show()
+
+print(pk_milk_base.intake_intensity_curve(200))
+# plt.plot(x_simulation, pk_milk_base.age_spline[3](x_simulation))
+# plt.show()
+pk_milk_base.generation_mass_balance(quickplot=True)
 
 # ## run the generation_mass_balance
 # now that everything is set, feel free to run the generation_mass_balance function.
 
 # In[16]:
-
-# run the generation mass balance. Turn on quickplot to just plot the data.
-pk_milk_base.generation_mass_balance(quickplot=True)
-
-# data can also be extracted by calling the dydt_solution function for each mass balance:
-
-# plot only the mass compartments for each generation
-for gen in range(0, pk_milk_base.gens):
-    plt.plot(x_simulation, pk_milk_base.dydt_solution[gen][:])
-    plt.plot(x_simulation,pk_milk_base.age_spline_derivative[gen](x_simulation))
-    plt.xlim(x_simulation[0], x_simulation[-1])
-plt.show()
-
-# plot only the chemical mass compartments for each generation
-for gen in range(0, pk_milk_base.gens)[1:2]:
-    plt.plot(x_simulation, pk_milk_base.dydt_solution[gen][:])
-    plt.xlim(x_simulation[0], x_simulation[-1])
-plt.show()
-
-
-# ## Using this data to answer the questions:
-# 1. What is the time concentration profile of a congener in each of the 5 generations since the introduction of the chemical?
-# 2. Which generation is at the highest risk?
-# 3. How does the concentration of a congener vary throughout each generation (e.g., what is the concentration of the congener for 20 year olds of each generation)?
 #
+# # run the generation mass balance. Turn on quickplot to just plot the data.
+# pk_milk_base.generation_mass_balance(quickplot=True)
+#
+# # data can also be extracted by calling the dydt_solution function for each mass balance:
+#
+# # plot only the mass compartments for each generation
+#
+# # # plot only the mass compartments for each generation
+# for gen in range(0, pk_milk_base.gens*pk_milk_base.odes_in_each_generation)[::2]:
+#     plt.plot(x_simulation, pk_milk_base.dydt_solution[gen][:])
+#     plt.xlim(x_simulation[0],x_simulation[-1])
+# plt.xlabel('Simulation year from start [year]')
+# plt.ylabel('Mass of Fat in body [kg]')
+# plt.show()
+#
+# # plot only the chemical mass compartments for each generation
+# for gen in range(0, pk_milk_base.gens*pk_milk_base.odes_in_each_generation)[1::2]:
+#     plt.plot(x_simulation, pk_milk_base.dydt_solution[gen][:])
+#     plt.xlim(x_simulation[0],x_simulation[-1])
+#     plt.yscale('log')
+# plt.xlabel('Simulation year from start [year]')
+# plt.ylabel('Congener concentration in fat kg_cong./kg_bm')
+# plt.show()
+#
+# # ## Using this data to answer the questions:
+# # 1. What is the time concentration profile of a congener in each of the 5 generations since the introduction of the chemical?
+# # 2. Which generation is at the highest risk?
+# # 3. How does the concentration of a congener vary throughout each generation (e.g., what is the concentration of the congener for 20 year olds of each generation)?
+# #
