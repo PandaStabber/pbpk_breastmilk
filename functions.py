@@ -53,7 +53,6 @@ def generation_mass_balance(y,
        '''
         cntr = 0
 
-
         for gen in range(0, gens):
 
             k_lac_m2c_r = k_lac_m2c(t, gen, k_lac, cbtg_child, average_lact_time)
@@ -136,7 +135,7 @@ def generation_mass_balance(y,
     r = integrate.ode(body_mass).set_integrator('vode',
                                                 order=4,
                                                 nsteps=num_steps,
-                                                min_step=1e-12,
+                                                min_step=1e-10,
                                                 method='bdf')
 
     y0 = np.zeros((np.int(gens * num_odes_in_gen), 1))
