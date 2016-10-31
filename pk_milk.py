@@ -35,7 +35,8 @@ class pk_milk():
         self.odes_in_each_generation = odes_in_each_generation
         self.y_start = 0
 
-    def dt_from_timesteps_(self, timestep_variable, method='timesteps_per_month'):
+    def dt_from_timesteps_(self, timestep_variable,
+                           method='timesteps_per_month'):
 
         if method == 'set_delta_t':
             self.delta_t = timestep_variable
@@ -56,7 +57,8 @@ class pk_milk():
         print("calculated n_steps:", self.n_steps)
         return self
 
-    def intake_intensity_curve_(self, intake_intensity_data=False, method='points2spline',
+    def intake_intensity_curve_(self, intake_intensity_data=False,
+                                method='points2spline',
                                 peak_intensity=1, year_peak=False):
 
         if method == 'points2spline':
@@ -69,7 +71,8 @@ class pk_milk():
             if (col_year[0] != self.y_start) or (col_year[-1] != self.y_end):
                 warnings.warn('simulation time misaligned with intake curve.')
 
-            intake_intensity_spline = interpolate.InterpolatedUnivariateSpline(adj_year, col_congener_intake)
+            intake_intensity_spline = interpolate.InterpolatedUnivariateSpline(
+                adj_year, col_congener_intake)
 
         if method == 'asymettric_exp_up_and_down':
             num_steps_up = (year_peak - self.y_start) / self.delta_t
@@ -86,11 +89,16 @@ class pk_milk():
             upswing_reg_lin = np.exp(y_reg_line_up)
 
             # the remaining intensity is set to zero
-            num_steps_d = (self.y_end - (year_peak + self.delta_t)) / self.delta_t
-            x_d_interp = np.linspace(year_peak + self.delta_t, self.y_end, num_steps_d)
+            num_steps_d = (self.y_end - (
+                year_peak + self.delta_t)) / self.delta_t
+            x_d_interp = np.linspace(year_peak + self.delta_t, self.y_end,
+                                     num_steps_d)
             x_d = np.array([year_peak + self.delta_t, self.y_end])
             y_d = np.log([peak_intensity, 1e-10])
-            (slope_d, intercept_d, r_value, p_value, std_err) = stats.linregress(x_d, y_d)
+            (
+                slope_d, intercept_d, r_value, p_value,
+                std_err) = stats.linregress(
+                x_d, y_d)
 
             y_reg_line_down = np.polyval([slope_d, intercept_d], x_d_interp)
             dswing_reg_lin = np.exp(y_reg_line_down)
@@ -99,28 +107,47 @@ class pk_milk():
             y_up_down = np.concatenate((upswing_reg_lin, dswing_reg_lin[1:]))
             x_up_down = np.concatenate((x_up_interp, x_d_interp[1:]))
 
-            intake_intensity_spline = interpolate.InterpolatedUnivariateSpline(x_up_down, y_up_down)
+            intake_intensity_spline = interpolate.InterpolatedUnivariateSpline(
+                x_up_down, y_up_down)
 
         self.intake_intensity_curve = intake_intensity_spline
 
         return self
 
     def biomonitoring_eval_(self, biomonitoring_data,
-                            exponential_fit=lambda x, a, c, d: a * np.exp(-c * x) + d, p0=(1e-6, 1e-6, 1),
+                            exponential_fit=lambda x, a, c, d: a * np.exp(
+                                -c * x) + d, p0=(1e-6, 1e-6, 1),
                             assumed_kinetic_order=1, method='lin2exp'):
+
         """
         Evaluating biomonitoring data for an individual congener.
 
-        :param biomonitoring_data: year column and congener blood concentration column e.g.
-                1996,13.92
-                1997,17.43
-                1998,11.33
-        :param exponential_fit: fit function
-        :param p0: initial conditions for non-linear fit
-        :param assumed_kinetic_order: first or second order
-        :param methodology: lin2exp or exp
+        :biomonitoring_data: year column and congener blood concentration
+                column e.g.
+
+        :example:
+            +----+-----+
+            |Year|Conc.|
+            +----+-----+
+            |1996|13.92|
+            +----+-----+
+            |1997|17.43|
+            +----+-----+
+            |1998|11.33|
+            +----+-----+
+
+        :exponential_fit: fit function
+
+        :p0: initial conditions for non-linear fit
+
+        :assumed_kinetic_order: first or second order
+
+        :param method: lin2exp or exp
+
         :return: year array, fitted y value array, slope
+
         """
+
 
         col_year = np.array(biomonitoring_data[:, 0]).flatten('C')
         col_congener = np.array(biomonitoring_data[:, 1]).flatten('C')
@@ -133,35 +160,52 @@ class pk_milk():
 
             if method == 'lin2exp':
                 log_congener = np.log(col_congener)
-                slope, intercept, r_value, p_value, std_err = stats.linregress(adj_year, log_congener)
-                return adj_year, np.polyval([slope, intercept], adj_year), -slope, -r_value
+                slope, intercept, r_value, p_value, std_err = stats.linregress(
+                    adj_year, log_congener)
+                return adj_year, np.polyval([slope, intercept],
+                                            adj_year), -slope, -r_value
 
             elif method == 'exp':
-                (popt, pcov) = curve_fit(exponential_fit, col_year, col_congener, p0=p0)
-                return adj_year, exponential_fit(adj_year, *popt), np.exp(-popt[1])
+                (popt, pcov) = curve_fit(exponential_fit, col_year,
+                                         col_congener, p0=p0)
+                return adj_year, exponential_fit(adj_year, *popt), np.exp(
+                    -popt[1])
 
         elif assumed_kinetic_order == 2:
             log_year = np.log(col_year)
             log_congener = np.log(col_congener)
-            (slope, intercept, r_value, p_value, std_err) = stats.linregress(log_year, log_congener)
-            return log_year, np.polyval([slope, intercept], log_year), -slope, -r_value
+            (slope, intercept, r_value, p_value, std_err) = stats.linregress(
+                log_year, log_congener)
+            return log_year, np.polyval([slope, intercept],
+                                        log_year), -slope, -r_value
 
     def age_timeline_(self, brth_sched=False):
-        '''
+        """
         Generate generational critical age definitions
 
-        :param  brth_sched: user provided birth schedule
-                  e.g., brth_sched=[0, 15, 25, 35]
-        :return: self
-        '''
-        print('default interval age at which mother gives birth: ', self.brth_age, 'years')
-        self.brth_sched = np.linspace(0, self.brth_age * self.gens, self.gens + 1)
-        print('calculated birth time-table based on birth age:', self.brth_sched, 'years')
+        :brth_sched: user provided birth schedule array
 
-        self.cbtg_child = list(map(lambda x: x + self.brth_age, self.brth_sched))
+        :example
+            brth_sched=[0, 15, 25, 35]
+
+        :return: self
+
+        """
+
+
+        print('default interval age at which mother gives birth: ',
+              self.brth_age, 'years')
+        self.brth_sched = np.linspace(0, self.brth_age * self.gens,
+                                      self.gens + 1)
+        print('calculated birth time-table based on birth age:',
+              self.brth_sched, 'years')
+
+        self.cbtg_child = list(
+            map(lambda x: x + self.brth_age, self.brth_sched))
         print('generational birth schedule:', self.cbtg_child, 'years')
 
-        self.aigd_mother = list(map(lambda x: x + self.lifespan, self.brth_sched))
+        self.aigd_mother = list(
+            map(lambda x: x + self.lifespan, self.brth_sched))
         print('generational death schedule:', self.aigd_mother, 'years')
 
         if brth_sched:
@@ -169,29 +213,44 @@ class pk_milk():
             print('provided birth time-table:', self.brth_sched, 'years')
 
             if self.gens < len(self.brth_sched):
-                print('more birth scheduling info was provided than gens calculated.')
-                print('increase number of gens else birth scheduling info will be ignored.')
+                print(
+                    'more birth scheduling info was provided than gens '
+                    'calculated.')
+                print(
+                    'increase number of gens else birth scheduling info will '
+                    'be ignored.')
 
                 self.brth_sched = self.brth_sched[:(self.gens + 1)]
-                warnings.warn('only the following section of the birth schedule will be used:', self.brth_sched)
+                warnings.warn(
+                    'only the following section of the birth schedule will '
+                    'be used:',
+                    self.brth_sched)
             if self.gens > len(self.brth_sched):
-                warnings.warn('insufficient birth scheduling information. increase gens to match.')
+                warnings.warn(
+                    'insufficient birth scheduling information. increase gens '
+                    'to match.')
 
         return self
 
-    def lipid_mass_from_bw_and_lipid_fraction(self, bodyweight_and_lipid_fraction_data):
+    def lipid_mass_from_bw_and_lipid_fraction(self,
+                                              bodyweight_and_lipid_fraction_data):
         """
+
         :param  bodyweight_and_lipid_fraction_data:
-        matrix format:
-        bodyweight_kg,  lipid_fraction
-        3.79233266687,  0.213947530915
-        4.67272833393,  0.225984883013
-        5.46991188708,  0.237058988856
+
+        :example: matrix format:
+            bodyweight_kg,  lipid_fraction
+            3.79233266687,  0.213947530915
+            4.67272833393,  0.225984883013
+            5.46991188708,  0.237058988856
 
         :return: array
+
         """
-        bodyweight_in_kg = np.array(bodyweight_and_lipid_fraction_data[:, 0]).flatten('C')
-        lipid_fraction = np.array(bodyweight_and_lipid_fraction_data[:, 1]).flatten('C')
+        bodyweight_in_kg = np.array(
+            bodyweight_and_lipid_fraction_data[:, 0]).flatten('C')
+        lipid_fraction = np.array(
+            bodyweight_and_lipid_fraction_data[:, 1]).flatten('C')
 
         # multiply every bodyweight by its corresponding lipid fraction
         lipid_mass = np.multiply(bodyweight_in_kg, lipid_fraction)
@@ -211,8 +270,10 @@ class pk_milk():
         num_steps_before = []
         num_steps_after = []
         for gen in range(0, self.gens):
-            num_steps_before.append(np.int((self.brth_sched[gen] - self.y_start) / self.delta_t))
-            num_steps_after.append(np.int((self.y_end - self.aigd_mother[gen]) / self.delta_t))
+            num_steps_before.append(
+                np.int((self.brth_sched[gen] - self.y_start) / self.delta_t))
+            num_steps_after.append(
+                np.int((self.y_end - self.aigd_mother[gen]) / self.delta_t))
 
         for gen in range(0, self.gens):
             y_before = []
@@ -223,40 +284,51 @@ class pk_milk():
             age_spline_d = pd.DataFrame()
             if num_steps_before[gen] == 0:
                 y_gen = lipid_mass_array
-                x_gen = np.linspace(self.brth_sched[gen], self.aigd_mother[gen], len(y_gen))
+                x_gen = np.linspace(self.brth_sched[gen], self.aigd_mother[gen],
+                                    len(y_gen))
 
                 if num_steps_after[gen] > 0:
                     y_after = np.zeros(np.int(num_steps_after[gen]))
-                    x_after = np.linspace(self.aigd_mother[gen], self.y_end, num_steps_after[gen])
+                    x_after = np.linspace(self.aigd_mother[gen], self.y_end,
+                                          num_steps_after[gen])
 
                 # concatenate everything, but remove overlaps.
                 y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
                 x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
-                age_spline_n = interpolate.InterpolatedUnivariateSpline(x_all, y_all, k=1)
+                age_spline_n = interpolate.InterpolatedUnivariateSpline(x_all,
+                                                                        y_all,
+                                                                        k=1)
                 age_spline_d = age_spline_n.derivative()
 
 
             elif num_steps_before[gen] > 0:
                 y_before = np.zeros(np.int(num_steps_before[gen]))
-                x_before = np.linspace(self.brth_sched[gen - 1], self.brth_sched[gen], num_steps_before[gen])
+                x_before = np.linspace(self.brth_sched[gen - 1],
+                                       self.brth_sched[gen],
+                                       num_steps_before[gen])
 
                 y_gen = lipid_mass_array
-                x_gen = np.linspace(self.brth_sched[gen], self.aigd_mother[gen], len(y_gen))
+                x_gen = np.linspace(self.brth_sched[gen], self.aigd_mother[gen],
+                                    len(y_gen))
 
                 if num_steps_after[gen] > 0:
                     y_after = np.zeros(np.int(num_steps_after[gen]))
-                    x_after = np.linspace(self.aigd_mother[gen], self.y_end, num_steps_after[gen])
+                    x_after = np.linspace(self.aigd_mother[gen], self.y_end,
+                                          num_steps_after[gen])
 
                 # concatenate everything, but remove overlaps.
                 y_all = np.concatenate([y_before[:-1], y_gen, y_after[1:-1]])
                 x_all = np.concatenate([x_before[:-1], x_gen, x_after[1:-1]])
 
-                age_spline_n = interpolate.InterpolatedUnivariateSpline(x_all, y_all, k=1)
+                age_spline_n = interpolate.InterpolatedUnivariateSpline(x_all,
+                                                                        y_all,
+                                                                        k=1)
                 age_spline_d = age_spline_n.derivative()
 
             age_spline = age_spline.append([age_spline_n], 1)
-            age_spline_derivative = age_spline_derivative.append([age_spline_d], 1)
+            age_spline_derivative = age_spline_derivative.append([age_spline_d],
+                                                                 1)
 
         self.age_spline = age_spline[0].ravel()
         self.age_spline_derivative = age_spline_derivative[0].ravel()
@@ -265,19 +337,21 @@ class pk_milk():
 
     def body_mass(self, t, y):
         '''
-        The first generation's mass balance should be specified above. Every other generations balance,
-        assuming it's the same, can be specified here.
+        The first generation's mass balance should be specified above.
+        Every other generations balance, assuming it's the same, can be
+        specified here.
 
-        Note that 'cntr' variable is a loop tracking tool. To specify that the previous box's mass balance
-        should be employed, use itr_mtrx[0][cntr]-X), where X is the total number of mass balances - 1.
+        Note that 'cntr' variable is a loop tracking tool. To specify that
+        the previous box's mass balance should be employed, use
+        itr_mtrx[0][cntr]-X), where X is the total number of mass balances - 1.
         This is because the array goes from 0 to 3, with length 4.
 
-        Use the np.int() to surround the itr_mtrx calls because arrays should be tracked with
-        integers, not floats.
+        Use the np.int() to surround the itr_mtrx calls because arrays should
+        be tracked with integers, not floats.
 
-        You can add more mass balances, but do not change dydt_matrix[0][gen] label.
-        This is because these are a placeholder variables that are reorganized from an array to
-        a matrix.
+        You can add more mass balances, but do not change dydt_matrix[0][gen]
+        label. This is because these are a placeholder variables that are
+        reorganized from an array to a matrix.
 
         For notes:
         aig_mother[gen]  # age the mother gives birth
@@ -289,14 +363,18 @@ class pk_milk():
 
         # auto setup for multi-generational ode
         odes_per_gen = range(0, self.odes_in_each_generation)
-        dydt_matrix = np.zeros(shape=(len(odes_per_gen), self.gens), dtype=object)
+        dydt_matrix = np.zeros(shape=(len(odes_per_gen), self.gens),
+                               dtype=object)
 
         order_array_counter = np.array(range(0, self.gens * len(odes_per_gen)))
-        itr_mtrx = order_array_counter.reshape((len(odes_per_gen), self.gens), order='F')
+        itr_mtrx = order_array_counter.reshape((len(odes_per_gen), self.gens),
+                                               order='F')
 
         def k_lac_m2c_(t, gen):
 
-            if np.all((t >= self.cbtg_child[gen]) & (t <= self.cbtg_child[gen] + self.average_lact_time[gen])):
+            if np.all((t >= self.cbtg_child[gen]) & (
+                        t <= self.cbtg_child[gen] + self.average_lact_time[
+                        gen])):
                 return self.k_lac[gen]
             else:
                 return 0.0
@@ -309,22 +387,28 @@ class pk_milk():
                 dydt_matrix[0][cntr] = self.age_spline_derivative[0](t)
                 dydt_matrix[1][cntr] = self.intake_intensity_curve(t) * y[0] \
                                        - self.k_elim[0] * y[0] * y[1] \
-                                       - k_lac_current_gen_to_next_gen * y[0] * y[1]
+                                       - k_lac_current_gen_to_next_gen * y[0] * \
+                                         y[1]
                 cntr = np.int(cntr + 1)
 
             elif gen >= 1:
-                # itr matrix # is the ode within the generation. cntr is the generation
+                # itr matrix # is the ode within the generation. cntr is the
+                # generation
 
                 k_lac_current_gen_to_next_gen = k_lac_m2c_(t, gen)
                 k_lac_previous_gen_to_current_gen = k_lac_m2c_(t, (gen - 1))
 
                 dydt_matrix[0][cntr] = self.age_spline_derivative[gen](t)
-                dydt_matrix[1][cntr] = self.intake_intensity_curve(t) * y[np.int(itr_mtrx[0][cntr])] \
-                                       - self.k_elim[gen] * y[np.int(itr_mtrx[0][cntr])] * y[np.int(itr_mtrx[1][cntr])] \
-                                       + k_lac_previous_gen_to_current_gen * y[np.int(itr_mtrx[0][cntr - 1])] * y[
-                    np.int(itr_mtrx[1][cntr - 1])] \
-                                       - k_lac_current_gen_to_next_gen * y[np.int(itr_mtrx[0][cntr])] * y[
-                    np.int(itr_mtrx[1][cntr])]
+                dydt_matrix[1][cntr] = self.intake_intensity_curve(t) * y[
+                    np.int(itr_mtrx[0][cntr])] \
+                                       - self.k_elim[gen] * y[
+                    np.int(itr_mtrx[0][cntr])] * y[np.int(itr_mtrx[1][cntr])] \
+                                       + k_lac_previous_gen_to_current_gen * y[
+                    np.int(itr_mtrx[0][cntr - 1])] * y[
+                                             np.int(itr_mtrx[1][cntr - 1])] \
+                                       - k_lac_current_gen_to_next_gen * y[
+                    np.int(itr_mtrx[0][cntr])] * y[
+                                             np.int(itr_mtrx[1][cntr])]
 
                 cntr = np.int(cntr + 1)
 
@@ -345,16 +429,19 @@ class pk_milk():
 
         y0 = np.zeros((np.int(self.gens * self.odes_in_each_generation), 1))
 
-        # because the model starts at year 0, adjust boundary conditions if age_spline != 0 @ 0.
+        # because the model starts at year 0, adjust boundary conditions if
+        # age_spline != 0 @ 0.
         if self.y_start == 0:
             y0[[0]] = self.age_spline[0](0)
 
         r.set_initial_value(y0, self.y_start)
 
         # create vectors to store trajectories
-        ode_init = np.zeros((np.int(self.n_steps * self.gens * self.odes_in_each_generation), 1))
-        ode_init_matrix = ode_init.reshape((self.odes_in_each_generation * self.gens,
-                                            np.int(self.n_steps)), order='F')
+        ode_init = np.zeros((np.int(
+            self.n_steps * self.gens * self.odes_in_each_generation), 1))
+        ode_init_matrix = ode_init.reshape(
+            (self.odes_in_each_generation * self.gens,
+             np.int(self.n_steps)), order='F')
 
         # initialize k for while loop
         iter_odes = range(0, self.odes_in_each_generation * self.gens, 1)
