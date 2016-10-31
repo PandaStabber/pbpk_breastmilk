@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pk_milk &#8212; PBPK Milk 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-3.3.6/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/bootstrap-sphinx.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="../_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../_static/bootstrap-sphinx.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="top" title="PBPK Milk 0.0.1 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+
+  <div id="navbar" class="navbar navbar-default navbar-fixed-top">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="../index.html">
+          PBPK Milk</a>
+        <span class="navbar-text navbar-version pull-left"><b>0.0.1</b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="../index.html">Site <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul>
+<li class="toctree-l1"><a class="reference internal" href="../pk_milk.html">pk_milk module</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"></ul>
+</li>
+              
+            
+            
+              
+                
+              
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="../search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-12 content">
+      
+  <h1>Source code for pk_milk</h1><div class="highlight"><pre>
+<span></span><span class="c1"># coding=utf-8</span>
+<span class="c1"># !/usr/bin/env python3</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">stats</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">integrate</span>
+<span class="kn">import</span> <span class="nn">scipy.interpolate</span> <span class="k">as</span> <span class="nn">interpolate</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="k">import</span> <span class="n">curve_fit</span>
+
+
+<span class="c1"># todo ( create function for lactation schedule and remove init)</span>
+
+
+<div class="viewcode-block" id="pk_milk"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk">[docs]</a><span class="k">class</span> <span class="nc">pk_milk</span><span class="p">():</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">gens</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                 <span class="n">y_end</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">lifespan</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+                 <span class="n">brth_age</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+                 <span class="n">average_lact_time</span><span class="o">=</span><span class="p">[</span><span class="mf">0.5</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+                 <span class="n">k_lac</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+                 <span class="n">k_elim</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+                 <span class="n">odes_in_each_generation</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">=</span> <span class="n">gens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span> <span class="o">=</span> <span class="n">y_end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lifespan</span> <span class="o">=</span> <span class="n">lifespan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">brth_age</span> <span class="o">=</span> <span class="n">brth_age</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">average_lact_time</span> <span class="o">=</span> <span class="n">average_lact_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_lac</span> <span class="o">=</span> <span class="n">k_lac</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k_elim</span> <span class="o">=</span> <span class="n">k_elim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span> <span class="o">=</span> <span class="n">odes_in_each_generation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="pk_milk.dt_from_timesteps_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.dt_from_timesteps_">[docs]</a>    <span class="k">def</span> <span class="nf">dt_from_timesteps_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timestep_variable</span><span class="p">,</span>
+                           <span class="n">method</span><span class="o">=</span><span class="s1">&#39;timesteps_per_month&#39;</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;set_delta_t&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span> <span class="o">=</span> <span class="n">timestep_variable</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timesteps_per_month</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new delta_t:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new timesteps/month:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timesteps_per_month</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;timesteps_per_month&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timesteps_per_month</span> <span class="o">=</span> <span class="n">timestep_variable</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new timesteps/month:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">timesteps_per_month</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">timesteps_per_month</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;new delta_t:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="pk_milk.n_steps_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.n_steps_">[docs]</a>    <span class="k">def</span> <span class="nf">n_steps_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">y_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;calculated n_steps:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="pk_milk.intake_intensity_curve_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.intake_intensity_curve_">[docs]</a>    <span class="k">def</span> <span class="nf">intake_intensity_curve_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intake_intensity_data</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">method</span><span class="o">=</span><span class="s1">&#39;points2spline&#39;</span><span class="p">,</span>
+                                <span class="n">peak_intensity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">year_peak</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;points2spline&#39;</span><span class="p">:</span>
+            <span class="n">col_year</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intake_intensity_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="n">col_congener_intake</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">intake_intensity_data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">year_one</span> <span class="o">=</span> <span class="n">col_year</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="c1"># Shift the years to zero</span>
+            <span class="n">adj_year</span> <span class="o">=</span> <span class="n">col_year</span> <span class="o">-</span> <span class="n">year_one</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">col_year</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">col_year</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;simulation time misaligned with intake curve.&#39;</span><span class="p">)</span>
+
+            <span class="n">intake_intensity_spline</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span>
+                <span class="n">adj_year</span><span class="p">,</span> <span class="n">col_congener_intake</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;asymettric_exp_up_and_down&#39;</span><span class="p">:</span>
+            <span class="n">num_steps_up</span> <span class="o">=</span> <span class="p">(</span><span class="n">year_peak</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span>
+
+            <span class="n">x_up</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="n">year_peak</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">])</span>
+            <span class="n">y_up</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="n">peak_intensity</span><span class="p">])</span>
+            <span class="p">(</span><span class="n">slope_up</span><span class="p">,</span> <span class="n">intercept_up</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span>
+             <span class="n">std_err</span><span class="p">)</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span><span class="n">x_up</span><span class="p">,</span> <span class="n">y_up</span><span class="p">)</span>
+
+            <span class="c1"># create the regression line</span>
+            <span class="n">x_up_interp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="n">year_peak</span><span class="p">,</span> <span class="n">num_steps_up</span><span class="p">)</span>
+            <span class="n">y_reg_line_up</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">([</span><span class="n">slope_up</span><span class="p">,</span> <span class="n">intercept_up</span><span class="p">],</span> <span class="n">x_up_interp</span><span class="p">)</span>
+            <span class="c1"># take the exp of the reg line to return it to an exp fit</span>
+            <span class="n">upswing_reg_lin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_reg_line_up</span><span class="p">)</span>
+
+            <span class="c1"># the remaining intensity is set to zero</span>
+            <span class="n">num_steps_d</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_end</span> <span class="o">-</span> <span class="p">(</span>
+                <span class="n">year_peak</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">))</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span>
+            <span class="n">x_d_interp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">year_peak</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">,</span>
+                                     <span class="n">num_steps_d</span><span class="p">)</span>
+            <span class="n">x_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">year_peak</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">])</span>
+            <span class="n">y_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="n">peak_intensity</span><span class="p">,</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">10</span><span class="p">])</span>
+            <span class="p">(</span>
+                <span class="n">slope_d</span><span class="p">,</span> <span class="n">intercept_d</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span>
+                <span class="n">std_err</span><span class="p">)</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span>
+                <span class="n">x_d</span><span class="p">,</span> <span class="n">y_d</span><span class="p">)</span>
+
+            <span class="n">y_reg_line_down</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">([</span><span class="n">slope_d</span><span class="p">,</span> <span class="n">intercept_d</span><span class="p">],</span> <span class="n">x_d_interp</span><span class="p">)</span>
+            <span class="n">dswing_reg_lin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">y_reg_line_down</span><span class="p">)</span>
+
+            <span class="c1"># concatenate the up and down swing sides</span>
+            <span class="n">y_up_down</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">upswing_reg_lin</span><span class="p">,</span> <span class="n">dswing_reg_lin</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+            <span class="n">x_up_down</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">x_up_interp</span><span class="p">,</span> <span class="n">x_d_interp</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+
+            <span class="n">intake_intensity_spline</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span>
+                <span class="n">x_up_down</span><span class="p">,</span> <span class="n">y_up_down</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">intake_intensity_curve</span> <span class="o">=</span> <span class="n">intake_intensity_spline</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="pk_milk.biomonitoring_eval_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.biomonitoring_eval_">[docs]</a>    <span class="k">def</span> <span class="nf">biomonitoring_eval_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">biomonitoring_data</span><span class="p">,</span>
+                            <span class="n">exponential_fit</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                                <span class="o">-</span><span class="n">c</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">d</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                            <span class="n">assumed_kinetic_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lin2exp&#39;</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluating biomonitoring data for an individual congener.</span>
+
+<span class="sd">        :biomonitoring_data: year column and congener blood concentration</span>
+<span class="sd">                column e.g.</span>
+
+<span class="sd">        :example:</span>
+<span class="sd">            +----+-----+</span>
+<span class="sd">            |Year|Conc.|</span>
+<span class="sd">            +----+-----+</span>
+<span class="sd">            |1996|13.92|</span>
+<span class="sd">            +----+-----+</span>
+<span class="sd">            |1997|17.43|</span>
+<span class="sd">            +----+-----+</span>
+<span class="sd">            |1998|11.33|</span>
+<span class="sd">            +----+-----+</span>
+
+<span class="sd">        :exponential_fit: fit function</span>
+
+<span class="sd">        :p0: initial conditions for non-linear fit</span>
+
+<span class="sd">        :assumed_kinetic_order: first or second order</span>
+
+<span class="sd">        :param method: lin2exp or exp</span>
+
+<span class="sd">        :return: year array, fitted y value array, slope</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="n">col_year</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">biomonitoring_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+        <span class="n">col_congener</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">biomonitoring_data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+
+        <span class="n">year_one</span> <span class="o">=</span> <span class="n">col_year</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">assumed_kinetic_order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Shift the years to zero</span>
+            <span class="n">adj_year</span> <span class="o">=</span> <span class="n">col_year</span> <span class="o">-</span> <span class="n">year_one</span>
+
+            <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lin2exp&#39;</span><span class="p">:</span>
+                <span class="n">log_congener</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">col_congener</span><span class="p">)</span>
+                <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span> <span class="n">std_err</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span>
+                    <span class="n">adj_year</span><span class="p">,</span> <span class="n">log_congener</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">adj_year</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">([</span><span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">],</span>
+                                            <span class="n">adj_year</span><span class="p">),</span> <span class="o">-</span><span class="n">slope</span><span class="p">,</span> <span class="o">-</span><span class="n">r_value</span>
+
+            <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;exp&#39;</span><span class="p">:</span>
+                <span class="p">(</span><span class="n">popt</span><span class="p">,</span> <span class="n">pcov</span><span class="p">)</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="n">exponential_fit</span><span class="p">,</span> <span class="n">col_year</span><span class="p">,</span>
+                                         <span class="n">col_congener</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">adj_year</span><span class="p">,</span> <span class="n">exponential_fit</span><span class="p">(</span><span class="n">adj_year</span><span class="p">,</span> <span class="o">*</span><span class="n">popt</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="o">-</span><span class="n">popt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">assumed_kinetic_order</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">log_year</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">col_year</span><span class="p">)</span>
+            <span class="n">log_congener</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">col_congener</span><span class="p">)</span>
+            <span class="p">(</span><span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span> <span class="n">std_err</span><span class="p">)</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span>
+                <span class="n">log_year</span><span class="p">,</span> <span class="n">log_congener</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">log_year</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">([</span><span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">],</span>
+                                        <span class="n">log_year</span><span class="p">),</span> <span class="o">-</span><span class="n">slope</span><span class="p">,</span> <span class="o">-</span><span class="n">r_value</span></div>
+
+<div class="viewcode-block" id="pk_milk.age_timeline_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.age_timeline_">[docs]</a>    <span class="k">def</span> <span class="nf">age_timeline_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">brth_sched</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate generational critical age definitions</span>
+
+<span class="sd">        :brth_sched: user provided birth schedule array</span>
+
+<span class="sd">        :example</span>
+<span class="sd">            brth_sched=[0, 15, 25, 35]</span>
+
+<span class="sd">        :return: self</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;default interval age at which mother gives birth: &#39;</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">brth_age</span><span class="p">,</span> <span class="s1">&#39;years&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_age</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">,</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;calculated birth time-table based on birth age:&#39;</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">,</span> <span class="s1">&#39;years&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cbtg_child</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_age</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;generational birth schedule:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbtg_child</span><span class="p">,</span> <span class="s1">&#39;years&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lifespan</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;generational death schedule:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">,</span> <span class="s1">&#39;years&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">brth_sched</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span> <span class="o">=</span> <span class="n">brth_sched</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;provided birth time-table:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">,</span> <span class="s1">&#39;years&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s1">&#39;more birth scheduling info was provided than gens &#39;</span>
+                    <span class="s1">&#39;calculated.&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span>
+                    <span class="s1">&#39;increase number of gens else birth scheduling info will &#39;</span>
+                    <span class="s1">&#39;be ignored.&#39;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[:(</span><span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s1">&#39;only the following section of the birth schedule will &#39;</span>
+                    <span class="s1">&#39;be used:&#39;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s1">&#39;insufficient birth scheduling information. increase gens &#39;</span>
+                    <span class="s1">&#39;to match.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="pk_milk.lipid_mass_from_bw_and_lipid_fraction"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.lipid_mass_from_bw_and_lipid_fraction">[docs]</a>    <span class="k">def</span> <span class="nf">lipid_mass_from_bw_and_lipid_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                              <span class="n">bodyweight_and_lipid_fraction_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        :param  bodyweight_and_lipid_fraction_data:</span>
+
+<span class="sd">        :example: matrix format:</span>
+<span class="sd">            bodyweight_kg,  lipid_fraction</span>
+<span class="sd">            3.79233266687,  0.213947530915</span>
+<span class="sd">            4.67272833393,  0.225984883013</span>
+<span class="sd">            5.46991188708,  0.237058988856</span>
+
+<span class="sd">        :return: array</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">bodyweight_in_kg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">bodyweight_and_lipid_fraction_data</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+        <span class="n">lipid_fraction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="n">bodyweight_and_lipid_fraction_data</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">)</span>
+
+        <span class="c1"># multiply every bodyweight by its corresponding lipid fraction</span>
+        <span class="n">lipid_mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">bodyweight_in_kg</span><span class="p">,</span> <span class="n">lipid_fraction</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">lipid_mass</span></div>
+
+<div class="viewcode-block" id="pk_milk.age_splines_"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.age_splines_">[docs]</a>    <span class="k">def</span> <span class="nf">age_splines_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lipid_mass_array</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create a list of age splines for each generation.</span>
+<span class="sd">        :param bodyweight_and_lipid_fraction_matrix:</span>
+<span class="sd">        :return: two arrays of spline objects describing each generation&#39;s lipid mass or</span>
+<span class="sd">        lipid mass change (derivative)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">age_spline_derivative</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="n">age_spline</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+        <span class="n">num_steps_before</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_steps_after</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">):</span>
+            <span class="n">num_steps_before</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">))</span>
+            <span class="n">num_steps_after</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">y_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">):</span>
+            <span class="n">y_before</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">x_before</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">y_after</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">x_after</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">age_spline_n</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="n">age_spline_d</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">num_steps_before</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">y_gen</span> <span class="o">=</span> <span class="n">lipid_mass_array</span>
+                <span class="n">x_gen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span>
+                                    <span class="nb">len</span><span class="p">(</span><span class="n">y_gen</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">y_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">]))</span>
+                    <span class="n">x_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">,</span>
+                                          <span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span>
+
+                <span class="c1"># concatenate everything, but remove overlaps.</span>
+                <span class="n">y_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">y_before</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_gen</span><span class="p">,</span> <span class="n">y_after</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+                <span class="n">x_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">x_before</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">x_gen</span><span class="p">,</span> <span class="n">x_after</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+                <span class="n">age_spline_n</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="n">x_all</span><span class="p">,</span>
+                                                                        <span class="n">y_all</span><span class="p">,</span>
+                                                                        <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">age_spline_d</span> <span class="o">=</span> <span class="n">age_spline_n</span><span class="o">.</span><span class="n">derivative</span><span class="p">()</span>
+
+
+            <span class="k">elif</span> <span class="n">num_steps_before</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">y_before</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">num_steps_before</span><span class="p">[</span><span class="n">gen</span><span class="p">]))</span>
+                <span class="n">x_before</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[</span><span class="n">gen</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span>
+                                       <span class="n">num_steps_before</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span>
+
+                <span class="n">y_gen</span> <span class="o">=</span> <span class="n">lipid_mass_array</span>
+                <span class="n">x_gen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">brth_sched</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span>
+                                    <span class="nb">len</span><span class="p">(</span><span class="n">y_gen</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">y_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">]))</span>
+                    <span class="n">x_after</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aigd_mother</span><span class="p">[</span><span class="n">gen</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">,</span>
+                                          <span class="n">num_steps_after</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span>
+
+                <span class="c1"># concatenate everything, but remove overlaps.</span>
+                <span class="n">y_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">y_before</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_gen</span><span class="p">,</span> <span class="n">y_after</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+                <span class="n">x_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">x_before</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">x_gen</span><span class="p">,</span> <span class="n">x_after</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+                <span class="n">age_spline_n</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">InterpolatedUnivariateSpline</span><span class="p">(</span><span class="n">x_all</span><span class="p">,</span>
+                                                                        <span class="n">y_all</span><span class="p">,</span>
+                                                                        <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">age_spline_d</span> <span class="o">=</span> <span class="n">age_spline_n</span><span class="o">.</span><span class="n">derivative</span><span class="p">()</span>
+
+            <span class="n">age_spline</span> <span class="o">=</span> <span class="n">age_spline</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">age_spline_n</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">age_spline_derivative</span> <span class="o">=</span> <span class="n">age_spline_derivative</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">age_spline_d</span><span class="p">],</span>
+                                                                 <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">age_spline</span> <span class="o">=</span> <span class="n">age_spline</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">age_spline_derivative</span> <span class="o">=</span> <span class="n">age_spline_derivative</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+<div class="viewcode-block" id="pk_milk.body_mass"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.body_mass">[docs]</a>    <span class="k">def</span> <span class="nf">body_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        The first generation&#39;s mass balance should be specified above.</span>
+<span class="sd">        Every other generations balance, assuming it&#39;s the same, can be</span>
+<span class="sd">        specified here.</span>
+
+<span class="sd">        Note that &#39;cntr&#39; variable is a loop tracking tool. To specify that</span>
+<span class="sd">        the previous box&#39;s mass balance should be employed, use</span>
+<span class="sd">        itr_mtrx[0][cntr]-X), where X is the total number of mass balances - 1.</span>
+<span class="sd">        This is because the array goes from 0 to 3, with length 4.</span>
+
+<span class="sd">        Use the np.int() to surround the itr_mtrx calls because arrays should</span>
+<span class="sd">        be tracked with integers, not floats.</span>
+
+<span class="sd">        You can add more mass balances, but do not change dydt_matrix[0][gen]</span>
+<span class="sd">        label. This is because these are a placeholder variables that are</span>
+<span class="sd">        reorganized from an array to a matrix.</span>
+
+<span class="sd">        For notes:</span>
+<span class="sd">        aig_mother[gen]  # age the mother gives birth</span>
+<span class="sd">        cbtg_child[gen]  # year child is born from previous gen</span>
+<span class="sd">        aigd_mother[gen]  # age of death of the mother</span>
+
+<span class="sd">       &#39;&#39;&#39;</span>
+        <span class="n">cntr</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># auto setup for multi-generational ode</span>
+        <span class="n">odes_per_gen</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span><span class="p">)</span>
+        <span class="n">dydt_matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">odes_per_gen</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">),</span>
+                               <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="n">order_array_counter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">odes_per_gen</span><span class="p">)))</span>
+        <span class="n">itr_mtrx</span> <span class="o">=</span> <span class="n">order_array_counter</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">odes_per_gen</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">),</span>
+                                               <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">k_lac_m2c_</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">gen</span><span class="p">):</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">((</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbtg_child</span><span class="p">[</span><span class="n">gen</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span>
+                        <span class="n">t</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cbtg_child</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">average_lact_time</span><span class="p">[</span>
+                        <span class="n">gen</span><span class="p">])):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_lac</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mf">0.0</span>
+
+        <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">):</span>
+
+            <span class="n">k_lac_current_gen_to_next_gen</span> <span class="o">=</span> <span class="n">k_lac_m2c_</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">gen</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">gen</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dydt_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">age_spline_derivative</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">dydt_matrix</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">cntr</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intake_intensity_curve</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> \
+                                       <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_elim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> \
+                                       <span class="o">-</span> <span class="n">k_lac_current_gen_to_next_gen</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> \
+                                         <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">cntr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">cntr</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="n">gen</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># itr matrix # is the ode within the generation. cntr is the</span>
+                <span class="c1"># generation</span>
+
+                <span class="n">k_lac_current_gen_to_next_gen</span> <span class="o">=</span> <span class="n">k_lac_m2c_</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">gen</span><span class="p">)</span>
+                <span class="n">k_lac_previous_gen_to_current_gen</span> <span class="o">=</span> <span class="n">k_lac_m2c_</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="p">(</span><span class="n">gen</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+                <span class="n">dydt_matrix</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">age_spline_derivative</span><span class="p">[</span><span class="n">gen</span><span class="p">](</span><span class="n">t</span><span class="p">)</span>
+                <span class="n">dydt_matrix</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">cntr</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intake_intensity_curve</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span><span class="p">])]</span> \
+                                       <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_elim</span><span class="p">[</span><span class="n">gen</span><span class="p">]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span><span class="p">])]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">cntr</span><span class="p">])]</span> \
+                                       <span class="o">+</span> <span class="n">k_lac_previous_gen_to_current_gen</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                                             <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">cntr</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])]</span> \
+                                       <span class="o">-</span> <span class="n">k_lac_current_gen_to_next_gen</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cntr</span><span class="p">])]</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span>
+                                             <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">itr_mtrx</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">cntr</span><span class="p">])]</span>
+
+                <span class="n">cntr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">cntr</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">dydt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">dydt_matrix</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dydt</span></div>
+
+<div class="viewcode-block" id="pk_milk.generation_mass_balance"><a class="viewcode-back" href="../pk_milk.html#pk_milk.pk_milk.generation_mass_balance">[docs]</a>    <span class="k">def</span> <span class="nf">generation_mass_balance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">quickplot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># use ``vode`` with &quot;backward differentiation formula&quot; or &#39;bdf&#39;</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">integrate</span><span class="o">.</span><span class="n">ode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body_mass</span><span class="p">)</span><span class="o">.</span><span class="n">set_integrator</span><span class="p">(</span><span class="s1">&#39;vode&#39;</span><span class="p">,</span>
+                                                         <span class="n">order</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                                                         <span class="n">nsteps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">,</span>
+                                                         <span class="n">min_step</span><span class="o">=</span><span class="mi">1</span><span class="n">e</span><span class="o">-</span><span class="mi">30</span><span class="p">,</span>
+                                                         <span class="n">method</span><span class="o">=</span><span class="s1">&#39;bdf&#39;</span><span class="p">)</span>
+
+        <span class="n">y0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># because the model starts at year 0, adjust boundary conditions if</span>
+        <span class="c1"># age_spline != 0 @ 0.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">y0</span><span class="p">[[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">age_spline</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">r</span><span class="o">.</span><span class="n">set_initial_value</span><span class="p">(</span><span class="n">y0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">)</span>
+
+        <span class="c1"># create vectors to store trajectories</span>
+        <span class="n">ode_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span><span class="p">),</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">ode_init_matrix</span> <span class="o">=</span> <span class="n">ode_init</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">,</span>
+             <span class="n">np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">)),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+        <span class="c1"># initialize k for while loop</span>
+        <span class="n">iter_odes</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odes_in_each_generation</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">gens</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">r</span><span class="o">.</span><span class="n">successful</span><span class="p">()</span> <span class="ow">and</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_steps</span><span class="p">:</span>
+            <span class="n">r</span><span class="o">.</span><span class="n">integrate</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">t</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_t</span><span class="p">)</span>
+            <span class="n">t</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">t</span>
+            <span class="k">for</span> <span class="n">ode</span> <span class="ow">in</span> <span class="n">iter_odes</span><span class="p">:</span>
+                <span class="n">ode_init_matrix</span><span class="p">[</span><span class="n">ode</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">ode</span><span class="p">]</span>
+            <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">quickplot</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ode</span> <span class="ow">in</span> <span class="n">iter_odes</span><span class="p">:</span>
+                <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iter_odes</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">iter_odes</span><span class="p">[</span><span class="n">ode</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">ode_init_matrix</span><span class="p">[</span><span class="n">ode</span><span class="p">][:])</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">ode_init_matrix</span><span class="p">[</span><span class="n">ode</span><span class="p">][:])</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="s1">&#39;on&#39;</span><span class="p">)</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_end</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dydt_solution</span> <span class="o">=</span> <span class="n">ode_init_matrix</span>
+        <span class="k">return</span> <span class="bp">self</span></div></div>
+</pre></div>
+
+    </div>
+      
+  </div>
+</div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2016, Eli Goldberg.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.8.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
