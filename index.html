@@ -1,9 +1,12 @@
 <!doctype html>
 <html>
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Generic, Generational Pharmacokinetic Model Describing the Transport of Pollutants in Breastmilk by PandaStabber</title>
+    <title>Generic, Generational Pharmacokinetic Model Describing the Transport of
+        Pollutants in Breastmilk by
+        PandaStabber</title>
+
 
     <link rel="stylesheet" href="stylesheets/styles.css">
     <link rel="stylesheet" href="stylesheets/github-light.css">
@@ -11,54 +14,115 @@
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-  </head>
-  <body>
-    <div class="wrapper">
-      <header>
-        <h1>Generic, Generational Pharmacokinetic Model Describing the Transport of Pollutants in Breastmilk</h1>
-        <p>This is a piece of code originally developed by Dr. Tenzing Gyalpo to support a publication. It has been adapted from Matlab, made generic, and is now hosted publicly to spur further development. </p>
+</head>
+<body>
+<div class="wrapper">
+    <header>
+        <h1>From Mother To Child: Generic, Generational Pharmacokinetic 1-Box Model
+            of the Transport of Pollutants in
+            Breastmilk</h1>
+        <p>This code and API are based on a model developed by Dr. Tenzing Gyalpo. It
+            has been
+            adapted from Matlab to python, made generic, and is now hosted publicly
+            to spur further development. </p>
 
-        <p class="view"><a href="https://github.com/PandaStabber/pbpk_breastmilk">View the Project on GitHub <small>PandaStabber/pbpk_breastmilk</small></a></p>
+        <p class="view"><a href="https://github.com/PandaStabber/pbpk_breastmilk">View
+            the Project on GitHub
+            <small>PandaStabber/pbpk_breastmilk</small>
+        </a></p>
+
+        <p class="view"><a
+                href="https://github.com/PandaStabber/pbpk_breastmilk/blob/master/docs/html_docs/index.html">View
+            the API documentation
+            <small>PandaStabber/pbpk_breastmilk/html_docs</small>
+        </a></p>
 
 
         <ul>
-          <li><a href="https://github.com/PandaStabber/pbpk_breastmilk/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/PandaStabber/pbpk_breastmilk/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/PandaStabber/pbpk_breastmilk">View On <strong>GitHub</strong></a></li>
+            <li>
+                <a href="https://github.com/PandaStabber/pbpk_breastmilk/zipball/master">Download
+                    <strong>ZIP
+                        File</strong></a></li>
+            <li>
+                <a href="https://github.com/PandaStabber/pbpk_breastmilk/tarball/master">Download
+                    <strong>TAR
+                        Ball</strong></a></li>
+            <li><a href="https://github.com/PandaStabber/pbpk_breastmilk">View On
+                <strong>GitHub</strong></a></li>
         </ul>
-      </header>
-      <section>
+    </header>
+    <section>
         <h3>
-<a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+            <a id="welcome-to-github-pages" class="anchor"
+               href="#welcome-to-github-pages" aria-hidden="true"><span
+                    aria-hidden="true" class="octicon octicon-link"></span></a>Background
+        </h3>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here <a href="https://guides.github.com/features/mastering-markdown/">using GitHub Flavored Markdown</a>, select a template crafted by a designer, and publish. After your page is generated, you can check out the new <code>gh-pages</code> branch locally. If you’re using GitHub Desktop, simply sync your repository and you’ll see the new branch.</p>
+        <p> Biomonitoring data of persistent organic pollutants (POPs) in breast milk
+            are increasingly
+            collected and available for quantitative analysis of levels and time
+            trends. A common approach is to apply
+            log-linear regression to calculate doubling and halving times of the POP
+            concentrations based on the
+            temporal trend observed in breast milk. However, there are different,
+            sometimes conflicting interpretations
+            of these doubling and halving times. Here we present a mechanistic
+            one-box modeling approach to generically
+            represent the transfer of POPs from mother to child in each generation.
+        </p>
 
-<h3>
-<a id="designer-templates" class="anchor" href="#designer-templates" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Designer Templates</h3>
+        <p> The publication on which the model is based is <a
+                href="http://ehp.niehs.nih.gov/15-10219/"> </a>
+            Recommendations for Evaluating Temporal Trends of Persistent Organic
+            Pollutants in Breast Milk.</p>
 
-<p>We’ve crafted some handsome templates for you to use. Go ahead and click 'Continue to layouts' to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved.</p>
+        <h3>
+            <a id="designer-templates" class="anchor" href="#designer-templates"
+               aria-hidden="true"><span
+                    aria-hidden="true" class="octicon octicon-link"></span></a>The
+            provided API</h3>
 
-<h3>
-<a id="creating-pages-manually" class="anchor" href="#creating-pages-manually" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Creating pages manually</h3>
+        <p>WUsing the developed API in python, one is able to represent variable
+            generational pollutant dynamics with a
+            high degree of control. An example file is included that goes over how to
+            use and explore the basic
+            functions of the model in the <code>examples</code> folder. Searchable
+            API documentation is also included.
+        </p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
 
-<h3>
-<a id="authors-and-contributors" class="anchor" href="#authors-and-contributors" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+        <h3>
+            <a id="authors-and-contributors" class="anchor"
+               href="#authors-and-contributors" aria-hidden="true"><span
+                    aria-hidden="true" class="octicon octicon-link"></span></a>Authors
+            and Contributors</h3>
 
-<p>You can @mention a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor’s GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+        <p>The following authors contributed to the scientific work.
+        <ul>
+            <li>
+                <a href="http://www.bafu.admin.ch/org/organisation/00366/00374/index.html?lang=en">Dr.
+                    Tenzing
+                    Gyalpo</a>
+            </li>
 
-<h3>
-<a id="support-or-contact" class="anchor" href="#support-or-contact" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Support or Contact</h3>
+            <li>
+                <a href="http://www.setg.ethz.ch/people/senior-scientists/prof--dr--martin-schering">Prof.
+                    Dr.
+                    Martin Scheringer</a>
+            </li>
+            <li><a href="https://github.com/PandaStabber" class="user-mention"> Dr.
+                Eli Goldberg (@PandaStabber </a>)
+            </li>
 
-<p>Having trouble with Pages? Check out our <a href="https://help.github.com/pages">documentation</a> or <a href="https://github.com/contact">contact support</a> and we’ll help you sort it out.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/PandaStabber">PandaStabber</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
-  </body>
+        </ul>
+
+    </section>
+    <footer>
+        <p>This project is maintained by <a href="https://github.com/PandaStabber">PandaStabber</a>
+        </p>
+    </footer>
+</div>
+<script src="javascripts/scale.fix.js"></script>
+
+</body>
 </html>
