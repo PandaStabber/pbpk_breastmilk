@@ -14,7 +14,7 @@ from scipy.optimize import curve_fit
 # todo ( create function for lactation schedule and remove init)
 
 
-class pk_milk():
+class milk():
     def __init__(self,
                  gens=1,
                  y_end=100,

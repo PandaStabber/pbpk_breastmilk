@@ -1,0 +1,3 @@
+[console_scripts]
+pk_milk = pk_milk.cli:main
+
